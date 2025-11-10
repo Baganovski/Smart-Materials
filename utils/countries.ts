@@ -13,4 +13,4 @@ export const countries: Country[] = [
   { name: 'Mexico', code: 'MX', currency: 'MXN', symbol: '$' },
 ];
 
-export const defaultCountry = countries[0]; // United States
+export const defaultCountry = countries[1]; // United Kingdom

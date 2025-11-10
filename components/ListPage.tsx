@@ -41,7 +41,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, onAddList, onDeleteList, onS
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="flex justify-between items-center mb-8 gap-4">
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600">JobCost</h1>
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-600">Smart Materials</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <GlobeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
