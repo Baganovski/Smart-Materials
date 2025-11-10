@@ -1,0 +1,5 @@
+{
+  "name": "JobCost: Materials Estimator",
+  "description": "A materials list app for tradesmen. Quickly create job lists, add materials, and get instant cost estimates powered by AI to track your total expenses.",
+  "requestFramePermissions": []
+}
