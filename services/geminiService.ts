@@ -26,7 +26,8 @@ export const fetchProductSuggestions = async (
   itemName: string,
   quantity: number,
   country: Country,
-  sources?: string
+  sources?: string,
+  existingSuggestions?: ProductSuggestion[]
 ): Promise<ProductSuggestion[] | 'error'> => {
   const model = 'gemini-2.5-flash';
   
@@ -48,12 +49,19 @@ The JSON object must conform to this structure:
 If no products are found, return: {"suggestions": []}.
 Do not include any other text or explanations.`;
 
-  const userPrompt = `Please find up to 5 product suggestions based on these details:
+  let exclusionPrompt = '';
+  if (existingSuggestions && existingSuggestions.length > 0) {
+      const exclusionList = existingSuggestions.map(s => `- ${s.name} from ${s.supplier}`).join('\n');
+      exclusionPrompt = `\nIMPORTANT: The user has already seen the following products. Do NOT include them or any very similar products in your new response:\n${exclusionList}`;
+  }
+
+  const userPrompt = `Please find up to 5 NEW and DIFFERENT product suggestions based on these details:
 - Search Query: "${itemName}"
 - Quantity Required: ${quantity}
 - Country for Suppliers: ${country.name}
 - Currency for Pricing: ${country.currency}
 - Preferred Suppliers (if any): ${sources && sources.trim() ? sources : 'Any reputable supplier.'}
+${exclusionPrompt}
 
 For each suggestion, provide the full product name, the supplier, the price for a single unit, the total price for the specified quantity, and a direct URL to the product page.`;
 

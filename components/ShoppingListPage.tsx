@@ -9,6 +9,7 @@ import AlertTriangleIcon from './icons/AlertTriangleIcon';
 import PrintIcon from './icons/PrintIcon';
 import ClipboardIcon from './icons/ClipboardIcon';
 import ExternalLinkIcon from './icons/ExternalLinkIcon';
+import SearchIcon from './icons/SearchIcon';
 
 interface ShoppingListPageProps {
   list: ShoppingList;
@@ -66,8 +67,14 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
 
     const result = await fetchProductSuggestions(name, quantity, country, customSources);
     
-    setItems(prevItems => 
-        prevItems.map(item => {
+    setItems(prevItems => {
+        const currentItem = prevItems.find(i => i.id === newItemId);
+        // If search was cancelled or item was deleted, do not process the result.
+        if (!currentItem || currentItem.cost !== 'searching') {
+            return prevItems;
+        }
+
+        return prevItems.map(item => {
             if (item.id === newItemId) {
                 if (result !== 'error' && result.length > 0) {
                     const sortedSuggestions = result.sort((a, b) => a.totalPrice - b.totalPrice);
@@ -77,8 +84,8 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                 }
             }
             return item;
-        })
-    );
+        });
+    });
   };
   
   const handleRejectSuggestions = (itemId: string) => {
@@ -113,6 +120,102 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
         })
     );
     setSelectingItemId(null);
+  };
+  
+  const handleFindMoreSuggestions = async (itemId: string) => {
+    const itemToUpdate = items.find(item => item.id === itemId);
+    if (!itemToUpdate) return;
+
+    const existingSuggestions = itemToUpdate.suggestions || [];
+    
+    // Close modal and set item to searching state
+    setSelectingItemId(null);
+    setItems(prevItems => 
+        prevItems.map(item => 
+            item.id === itemId ? { ...item, cost: 'searching' } : item
+        )
+    );
+
+    const result = await fetchProductSuggestions(
+        itemToUpdate.name, 
+        itemToUpdate.quantity, 
+        country, 
+        customSources, 
+        existingSuggestions
+    );
+
+    setItems(prevItems => {
+        const currentItem = prevItems.find(i => i.id === itemId);
+        // If search was cancelled or item was deleted, do not process the result.
+        if (!currentItem || currentItem.cost !== 'searching') {
+            return prevItems;
+        }
+
+        return prevItems.map(item => {
+            if (item.id === itemId) {
+                if (result !== 'error' && result.length > 0) {
+                    const combined = [...existingSuggestions, ...result];
+                    const uniqueSuggestions = Array.from(new Map(combined.map(s => [s.productUrl, s])).values());
+                    const sortedSuggestions = uniqueSuggestions.sort((a, b) => a.totalPrice - b.totalPrice);
+                    return { ...item, cost: 'select', suggestions: sortedSuggestions };
+                } else {
+                    return { ...item, cost: 'select' }; // On failure, revert to 'select' with existing suggestions
+                }
+            }
+            return item;
+        });
+    });
+  };
+
+  const handleCancelSearch = (itemId: string) => {
+    setItems(prevItems =>
+      prevItems.map(item => {
+        if (item.id === itemId && item.cost === 'searching') {
+          // If it has suggestions, it was a "Find More" search. Revert to 'select'.
+          // Otherwise, it was an initial search. Revert to manual entry state.
+          const newCost = (item.suggestions && item.suggestions.length > 0) ? 'select' : 'error';
+          return { ...item, cost: newCost };
+        }
+        return item;
+      })
+    );
+  };
+  
+  const handleRetrySearch = async (itemId: string) => {
+    const itemToRetry = items.find(item => item.id === itemId);
+    if (!itemToRetry) return;
+
+    setItems(prevItems =>
+      prevItems.map(item =>
+        item.id === itemId ? { ...item, cost: 'searching' } : item
+      )
+    );
+
+    const result = await fetchProductSuggestions(
+      itemToRetry.name,
+      itemToRetry.quantity,
+      country,
+      customSources
+    );
+
+    setItems(prevItems => {
+      const currentItem = prevItems.find(i => i.id === itemId);
+      if (!currentItem || currentItem.cost !== 'searching') {
+        return prevItems; // Search was cancelled again
+      }
+
+      return prevItems.map(item => {
+        if (item.id === itemId) {
+          if (result !== 'error' && result.length > 0) {
+            const sortedSuggestions = result.sort((a, b) => a.totalPrice - b.totalPrice);
+            return { ...item, cost: 'select', suggestions: sortedSuggestions };
+          } else {
+            return { ...item, cost: 'error' };
+          }
+        }
+        return item;
+      });
+    });
   };
 
   const handleToggleItem = (id: string) => {
@@ -233,19 +336,21 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
       
       {itemForSelection && (
          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-          <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-lg">
+          <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-lg text-base">
             <h2 className="text-2xl font-bold mb-4">Select a product for "{itemForSelection.name}"</h2>
             {(itemForSelection.suggestions && itemForSelection.suggestions.length > 0) ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                     {itemForSelection.suggestions.map((suggestion, index) => (
                         <div
                             key={index}
-                            className="w-full text-left p-4 bg-highlighter/50 border-2 border-pencil rounded-md transition-colors"
+                            className="w-full text-left p-4 bg-yellow-50 border border-yellow-200 rounded-md transition-colors"
                         >
                             <div className="flex justify-between items-start gap-2 mb-3">
                                 <div className="flex-grow">
                                     <p className="font-semibold text-pencil break-words">{suggestion.name}</p>
-                                    <p className="text-sm text-ink-light font-semibold">{suggestion.supplier}</p>
+                                    <div className="mt-1">
+                                      <span className="text-xs font-bold px-2 py-0.5 bg-ink/20 text-ink rounded-full">{suggestion.supplier}</span>
+                                    </div>
                                 </div>
                                 <div className="text-right text-pencil flex-shrink-0">
                                     <div className="font-bold text-ink text-lg whitespace-nowrap">
@@ -269,7 +374,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                                 </a>
                                 <button
                                     onClick={() => handleSelectSuggestion(itemForSelection.id, suggestion)}
-                                    className="px-3 py-1 bg-ink hover:bg-ink-light text-white rounded-md transition-colors text-sm font-semibold w-24 text-center"
+                                    className="px-3 py-1 bg-ink hover:bg-ink-light text-white rounded-md transition-colors text-sm font-semibold whitespace-nowrap"
                                 >
                                     Select Product
                                 </button>
@@ -284,6 +389,13 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
             )}
              <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setSelectingItemId(null)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
+               <button 
+                onClick={() => handleFindMoreSuggestions(itemForSelection.id)} 
+                className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors flex items-center gap-2"
+              >
+                <SearchIcon className="w-5 h-5" />
+                <span>Find More</span>
+              </button>
               <button 
                 onClick={() => handleRejectSuggestions(itemForSelection.id)} 
                 className="px-4 py-2 bg-ink hover:bg-ink-light text-white rounded-md transition-colors"
@@ -429,16 +541,20 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                     </span>
                 </div>
             </div>
-            <div className="text-right mr-4 w-40 text-pencil font-bold text-xl flex justify-end items-center">
+            <div className="text-right mr-4 text-pencil font-bold text-xl flex justify-end items-center">
               {item.cost === 'searching' && (
-                  <div className="w-full max-w-[50px]">
-                      <p className="text-sm text-pencil-light text-right mb-1 -mt-1">Searching...</p>
-                      <div className="w-full bg-paper border border-pencil/50 rounded-full h-2 overflow-hidden">
-                          <div
-                              className="bg-gradient-to-r from-paper via-ink to-paper bg-[length:200%_100%] h-full rounded-full animate-progress-wave"
-                          ></div>
-                      </div>
-                  </div>
+                  <button
+                    onClick={() => handleCancelSearch(item.id)}
+                    className="group w-28 cursor-pointer rounded-md p-2 hover:bg-danger/10 transition-colors"
+                    aria-label={`Cancel search for ${item.name}`}
+                  >
+                    <p className="text-sm text-pencil-light text-center mb-1 -mt-1 group-hover:text-danger">Searching...</p>
+                    <div className="w-full bg-paper border border-pencil/50 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-paper via-ink to-paper bg-[length:200%_100%] h-full rounded-full animate-progress-wave"
+                      ></div>
+                    </div>
+                  </button>
               )}
 
               {item.cost === 'select' && (
@@ -451,14 +567,23 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
               )}
               
               {(item.cost === 'error' || item.cost === null) && editingItemId !== item.id && (
-                  <button
-                      onClick={() => setEditingItemId(item.id)}
-                      className="flex items-center gap-1.5 cursor-pointer p-1 rounded-md hover:bg-danger/10 text-danger transition-colors text-base font-normal"
-                      aria-label={`Set cost for ${item.name}`}
-                  >
-                      <AlertTriangleIcon className="w-5 h-5" />
-                      <span>Set Cost</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleRetrySearch(item.id)}
+                      className="p-2 rounded-full hover:bg-highlighter text-pencil-light hover:text-ink transition-colors"
+                      aria-label={`Search again for ${item.name}`}
+                    >
+                      <SearchIcon className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setEditingItemId(item.id)}
+                        className="flex items-center gap-1.5 cursor-pointer p-1 rounded-md hover:bg-danger/10 text-danger transition-colors text-base font-normal"
+                        aria-label={`Set cost for ${item.name}`}
+                    >
+                        <AlertTriangleIcon className="w-5 h-5" />
+                        <span>Set Cost</span>
+                    </button>
+                  </div>
               )}
 
               {typeof item.cost === 'number' && editingItemId !== item.id && (
@@ -468,7 +593,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
               )}
 
               {editingItemId === item.id && (
-                  <div className="relative flex items-center w-full">
+                  <div className="relative flex items-center w-28">
                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-pencil-light font-normal">{country.symbol}</span>
                     <input
                       type="number"
