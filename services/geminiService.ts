@@ -31,8 +31,21 @@ export const fetchProductSuggestions = async (
 ): Promise<ProductSuggestion[] | 'error'> => {
   const model = 'gemini-2.5-flash';
   
-  const systemInstruction = `You are an expert materials sourcing agent for tradespeople.
-Your task is to find purchasable products that match the user's request.
+  const systemInstruction = `You are an extremely accurate and reliable materials sourcing agent for tradespeople. Your primary goal is to find correct, purchasable products using Google Search and return them in a specific JSON format. Your reputation depends on the quality of your results.
+
+**CRITICAL RULES:**
+1.  **URL VALIDITY IS PARAMOUNT:** You MUST verify that every \`productUrl\` is a direct, working link to a specific product detail page. 
+    -   **GOOD:** A URL like \`https://www.screwfix.com/p/product/12345\`
+    -   **BAD:** Links to search result pages (e.g., \`.../search?q=...\`), category pages, homepages, or 404 error pages.
+    -   If you cannot find a valid, direct product link, **OMIT THE PRODUCT ENTIRELY.** Do not guess.
+
+2.  **PRICE ACCURACY:** You MUST find the most up-to-date price from the product page. If a price is not clearly visible, **OMIT THE PRODUCT.** Calculate \`totalPrice\` by multiplying \`pricePerUnit\` by the user-specified quantity.
+
+3.  **SUPPLIER RELIABILITY:** Prioritize large, reputable national suppliers for the specified country. For the UK, this includes Screwfix, Toolstation, B&Q, Travis Perkins, and Wickes. These sites are more likely to yield reliable data.
+
+4.  **NO GUESSING:** It is better to return fewer, high-quality results or even an empty \`suggestions\` array than to provide inaccurate or broken information. Never invent URLs or prices.
+
+**RESPONSE FORMAT:**
 You must respond ONLY with a valid JSON object inside a JSON markdown block.
 The JSON object must conform to this structure:
 {
@@ -42,12 +55,13 @@ The JSON object must conform to this structure:
       "supplier": "Supplier Name",
       "pricePerUnit": 10.50,
       "totalPrice": 21.00,
-      "productUrl": "https://example.com/product"
+      "productUrl": "https://valid-product-url.com/product-page"
     }
   ]
 }
-If no products are found, return: {"suggestions": []}.
-Do not include any other text or explanations.`;
+
+If no valid products are found that meet all the above criteria, return: {"suggestions": []}.
+Do not include any other text, apologies, or explanations in your response.`;
 
   let exclusionPrompt = '';
   if (existingSuggestions && existingSuggestions.length > 0) {
@@ -55,15 +69,13 @@ Do not include any other text or explanations.`;
       exclusionPrompt = `\nIMPORTANT: The user has already seen the following products. Do NOT include them or any very similar products in your new response:\n${exclusionList}`;
   }
 
-  const userPrompt = `Please find up to 5 NEW and DIFFERENT product suggestions based on these details:
+  const userPrompt = `Find up to 5 product suggestions based on these details:
 - Search Query: "${itemName}"
 - Quantity Required: ${quantity}
 - Country for Suppliers: ${country.name}
 - Currency for Pricing: ${country.currency}
-- Preferred Suppliers (if any): ${sources && sources.trim() ? sources : 'Any reputable supplier.'}
-${exclusionPrompt}
-
-For each suggestion, provide the full product name, the supplier, the price for a single unit, the total price for the specified quantity, and a direct URL to the product page.`;
+- Preferred Suppliers (if any): ${sources && sources.trim() ? sources : 'Use your knowledge of reputable suppliers.'}
+${exclusionPrompt}`;
 
   try {
     const response = await ai.models.generateContent({

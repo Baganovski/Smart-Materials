@@ -24,6 +24,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
   const [newItemQty, setNewItemQty] = useState('1');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingQuantityItemId, setEditingQuantityItemId] = useState<string | null>(null);
+  const [editingNameItemId, setEditingNameItemId] = useState<string | null>(null);
   const [customSources, setCustomSources] = useState(list.sources || '');
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy');
@@ -269,6 +270,54 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
     setEditingQuantityItemId(null);
 };
 
+const handleUpdateItemName = async (id: string, newName: string) => {
+    const trimmedName = newName.trim();
+    setEditingNameItemId(null);
+    
+    const itemToUpdate = items.find(i => i.id === id);
+    if (!itemToUpdate || !trimmedName || trimmedName === itemToUpdate.name) {
+        return;
+    }
+    
+    setItems(prevItems =>
+      prevItems.map(item =>
+        item.id === id ? { 
+            ...item, 
+            name: trimmedName, 
+            cost: 'searching', 
+            suggestions: undefined,
+            productUrl: undefined,
+        } : item
+      )
+    );
+    
+    const result = await fetchProductSuggestions(
+        trimmedName, 
+        itemToUpdate.quantity, 
+        country, 
+        customSources
+    );
+
+    setItems(prevItems => {
+        const currentItem = prevItems.find(i => i.id === id);
+        if (!currentItem || currentItem.cost !== 'searching') {
+            return prevItems;
+        }
+        
+        return prevItems.map(item => {
+            if (item.id === id) {
+                if (result !== 'error' && result.length > 0) {
+                    const sortedSuggestions = result.sort((a, b) => a.totalPrice - b.totalPrice);
+                    return { ...item, cost: 'select', suggestions: sortedSuggestions };
+                } else {
+                    return { ...item, cost: 'error' };
+                }
+            }
+            return item;
+        });
+    });
+};
+
 
   const totalCost = useMemo(() => items.reduce((sum, item) => {
     if (typeof item.cost === 'number') {
@@ -387,7 +436,10 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                     <p>No suggestions found.</p>
                 </div>
             )}
-             <div className="flex justify-end gap-3 mt-6">
+            <div className="text-center text-xs text-pencil-light mt-4 px-4">
+              AI-generated suggestions may be inaccurate. Please verify prices and links before purchasing.
+            </div>
+             <div className="flex justify-end gap-3 mt-4">
               <button onClick={() => setSelectingItemId(null)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
                <button 
                 onClick={() => handleFindMoreSuggestions(itemForSelection.id)} 
@@ -525,8 +577,28 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                             {item.quantity}x
                         </span>
                     )}
-                    <span className={`flex-1 ${item.completed ? 'line-through' : ''}`}>
-                      {item.productUrl ? (
+                    <div className={`flex-1 ${item.completed ? 'line-through' : ''}`}>
+                      {editingNameItemId === item.id ? (
+                        <input
+                          type="text"
+                          defaultValue={item.name}
+                          autoFocus
+                          onFocus={(e) => e.target.select()}
+                          className="bg-highlighter text-pencil w-full px-2 py-1 rounded-md text-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleUpdateItemName(item.id, (e.target as HTMLInputElement).value);
+                            }
+                            if (e.key === 'Escape') {
+                              setEditingNameItemId(null);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            handleUpdateItemName(item.id, e.target.value);
+                          }}
+                          aria-label={`Edit name for ${item.name}`}
+                        />
+                      ) : item.productUrl ? (
                         <a 
                           href={item.productUrl} 
                           target="_blank" 
@@ -536,9 +608,14 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                           {item.name}
                         </a>
                       ) : (
-                        item.name
+                        <span 
+                          onClick={() => !item.completed && setEditingNameItemId(item.id)}
+                          className={`inline-block w-full p-1 -ml-1 rounded-md transition-colors ${!item.completed ? 'cursor-pointer hover:bg-highlighter' : 'cursor-default'}`}
+                        >
+                          {item.name}
+                        </span>
                       )}
-                    </span>
+                    </div>
                 </div>
             </div>
             <div className="text-right mr-4 text-pencil font-bold text-xl flex justify-end items-center">
