@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import TrashIcon from './icons/TrashIcon';
 
@@ -33,12 +32,12 @@ const Bin: React.FC<BinProps> = ({ isVisible, onDrop }) => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-slate-900 to-transparent flex items-center justify-center transition-opacity duration-300 animate-slide-up ${
+      className={`fixed bottom-0 left-0 right-0 h-40 flex items-center justify-center transition-opacity duration-300 animate-slide-up ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div className={`p-8 rounded-full border-2 border-dashed transition-all duration-300 ${isOver ? 'bg-red-500/20 border-red-500 scale-110' : 'border-slate-600'}`}>
-        <TrashIcon className={`w-10 h-10 transition-all duration-300 ${isOver ? 'text-red-500' : 'text-slate-500'}`} />
+      <div className={`p-8 rounded-full border-2 border-dashed transition-all duration-300 ${isOver ? 'bg-danger/10 border-danger scale-110' : 'border-pencil-light'}`}>
+        <TrashIcon className={`w-10 h-10 transition-all duration-300 ${isOver ? 'text-danger' : 'text-pencil-light'}`} />
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ShoppingList, Country } from '../types';
 
@@ -11,8 +12,12 @@ interface ListItemTileProps {
 
 const ListItemTile: React.FC<ListItemTileProps> = ({ list, country, onClick, onDragStart, onDragEnd }) => {
   const totalCost = list.items.reduce((sum, item) => {
-    return sum + (typeof item.cost === 'number' ? item.cost : 0);
+    if (typeof item.cost === 'number') {
+      return sum + item.cost;
+    }
+    return sum;
   }, 0);
+
   const itemCount = list.items.length;
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
@@ -27,15 +32,17 @@ const ListItemTile: React.FC<ListItemTileProps> = ({ list, country, onClick, onD
       draggable
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      className="bg-slate-800 rounded-xl p-6 cursor-pointer shadow-lg hover:shadow-blue-500/20 border border-transparent hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-1 group"
+      className="bg-highlighter rounded-lg p-6 cursor-pointer border-2 border-pencil shadow-sketchy hover:shadow-sketchy-hover transition-all duration-200 group"
     >
-      <h3 className="text-xl font-bold text-slate-100 truncate mb-2 group-hover:text-sky-400 transition-colors">{list.name}</h3>
-      <p className="text-slate-400 text-sm mb-4">
+      <h3 className="text-2xl font-bold text-pencil truncate mb-2 group-hover:text-ink transition-colors">{list.name}</h3>
+      <p className="text-pencil-light text-base mb-4">
         {itemCount} {itemCount === 1 ? 'material' : 'materials'}
       </p>
       <div className="flex justify-between items-baseline">
-        <span className="text-slate-500 text-xs">Est. Cost</span>
-        <span className="text-2xl font-bold text-sky-400">{country.symbol}{totalCost.toFixed(2)}</span>
+        <span className="text-pencil-light text-sm">Est. Cost</span>
+        <span className="text-2xl font-bold text-ink whitespace-nowrap">
+          {`${country.symbol}${totalCost.toFixed(2)}`}
+        </span>
       </div>
     </div>
   );

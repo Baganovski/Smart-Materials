@@ -1,11 +1,20 @@
-// FIX: Define and export interfaces for ShoppingList, ShoppingListItem, and Country to resolve "not a module" errors across the application. This provides the necessary type definitions for the app's data structures.
+// FIX: Removed self-import of 'Country' which conflicted with its local declaration.
+export interface ProductSuggestion {
+  name: string;
+  supplier: string;
+  pricePerUnit: number;
+  totalPrice: number;
+  productUrl: string;
+}
+
 export interface ShoppingListItem {
   id: string;
   name: string;
   quantity: number;
-  unit: 'items' | 'meters';
-  cost: number | 'loading' | 'error';
+  cost: number | 'searching' | 'select' | 'error' | null;
+  suggestions?: ProductSuggestion[];
   completed: boolean;
+  productUrl?: string;
 }
 
 export interface ShoppingList {
@@ -13,6 +22,7 @@ export interface ShoppingList {
   name: string;
   items: ShoppingListItem[];
   createdAt: string;
+  sources?: string;
 }
 
 export interface Country {

@@ -5,11 +5,30 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Materials</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['"Patrick Hand"', 'sans-serif'],
+            },
+            colors: {
+              paper: '#fdfcf8',
+              pencil: '#333333',
+              'pencil-light': '#666666',
+              ink: '#166534', // a darker green
+              'ink-light': '#16a34a',
+              highlighter: 'rgba(250, 240, 180, 0.4)',
+              danger: '#dc2626',
+            },
+            boxShadow: {
+              'sketchy': '3px 3px 0px #333333',
+              'sketchy-hover': '5px 5px 0px #166534',
+            },
             keyframes: {
               'slide-up': {
                 '0%': { transform: 'translateY(100%)', opacity: '0' },
@@ -39,7 +58,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-900 text-white antialiased">
+  <body class="bg-paper text-pencil text-lg antialiased">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
