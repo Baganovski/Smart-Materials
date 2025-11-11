@@ -30,6 +30,10 @@
               'sketchy-hover': '5px 5px 0px #166534',
             },
             keyframes: {
+              'spin': {
+                'from': { transform: 'rotate(0deg)' },
+                'to': { transform: 'rotate(360deg)' },
+              },
               'slide-up': {
                 '0%': { transform: 'translateY(100%)', opacity: '0' },
                 '100%': { transform: 'translateY(0)', opacity: '1' },
@@ -40,6 +44,7 @@
               },
             },
             animation: {
+              'spin': 'spin 1s linear infinite',
               'slide-up': 'slide-up 0.3s ease-out forwards',
               'pop-in': 'pop-in 0.2s ease-out forwards',
             },

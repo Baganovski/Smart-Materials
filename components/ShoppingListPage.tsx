@@ -81,6 +81,22 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
     );
   };
   
+  const handleRejectSuggestions = (itemId: string) => {
+    setItems(prevItems =>
+        prevItems.map(item => {
+            if (item.id === itemId) {
+                return {
+                    ...item,
+                    cost: null, // Revert to manual entry state
+                    suggestions: undefined,
+                };
+            }
+            return item;
+        })
+    );
+    setSelectingItemId(null);
+  };
+  
   const handleSelectSuggestion = (itemId: string, suggestion: ProductSuggestion) => {
     setItems(prevItems =>
         prevItems.map(item => {
@@ -161,6 +177,8 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
   const completedItems = items.filter(item => item.completed).length;
 
   const printableList = useMemo(() => {
+    const title = `Job: ${list.name}\n====================\n`;
+
     const listBody = items
       .map(item => {
         let line = `${item.quantity}x ${item.name}`;
@@ -172,13 +190,14 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
       })
       .join('\n');
 
+    let footer = '';
     if (includePricesInPrint && totalCost > 0) {
       const totalString = `${country.symbol}${totalCost.toFixed(2)}`;
-      return `${listBody}\n\n--------------------\nTotal: ${totalString}`;
+      footer = `\n\n--------------------\nTotal: ${totalString}`;
     }
-
-    return listBody;
-  }, [items, includePricesInPrint, country.symbol, totalCost]);
+    
+    return `${title}${listBody}${footer}`;
+  }, [items, includePricesInPrint, country.symbol, totalCost, list.name]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(printableList).then(() => {
@@ -265,6 +284,12 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
             )}
              <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setSelectingItemId(null)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
+              <button 
+                onClick={() => handleRejectSuggestions(itemForSelection.id)} 
+                className="px-4 py-2 bg-ink hover:bg-ink-light text-white rounded-md transition-colors"
+              >
+                Set Price Manually
+              </button>
             </div>
           </div>
          </div>
@@ -273,7 +298,8 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
       {isPrintModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
           <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Printable List</h2>
+            <h2 className="text-2xl font-bold mb-1">Printable List</h2>
+            <p className="text-pencil-light mb-4 truncate">For Job: "{list.name}"</p>
              <div className="flex items-center mb-4">
               <input
                 type="checkbox"
