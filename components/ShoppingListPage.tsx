@@ -242,21 +242,21 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                             key={index}
                             className="w-full text-left p-4 bg-highlighter/50 border-2 border-pencil rounded-md transition-colors"
                         >
-                            <div className="flex justify-between items-start gap-4 mb-3">
-                                <div className="flex-grow pr-4">
-                                    <p className="font-semibold text-pencil">{suggestion.name}</p>
+                            <div className="flex justify-between items-start gap-2 mb-3">
+                                <div className="flex-grow">
+                                    <p className="font-semibold text-pencil break-words">{suggestion.name}</p>
                                     <p className="text-sm text-ink-light font-semibold">{suggestion.supplier}</p>
                                 </div>
                                 <div className="text-right text-pencil flex-shrink-0">
                                     <div className="font-bold text-ink text-lg whitespace-nowrap">
                                         {country.symbol}{suggestion.totalPrice.toFixed(2)}
                                     </div>
-                                    <div className="text-sm text-pencil-light whitespace-nowrap">
+                                    <div className="text-sm text-pencil-light">
                                         {country.symbol}{suggestion.pricePerUnit.toFixed(2)} / item &times; {itemForSelection.quantity}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 border-t-2 border-dashed border-pencil/20 pt-3">
+                            <div className="flex justify-end items-center gap-3 border-t-2 border-dashed border-pencil/20 pt-3">
                                 <a
                                     href={suggestion.productUrl}
                                     target="_blank"
@@ -269,7 +269,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
                                 </a>
                                 <button
                                     onClick={() => handleSelectSuggestion(itemForSelection.id, suggestion)}
-                                    className="px-3 py-1 bg-ink hover:bg-ink-light text-white rounded-md transition-colors text-sm font-semibold"
+                                    className="px-3 py-1 bg-ink hover:bg-ink-light text-white rounded-md transition-colors text-sm font-semibold w-24 text-center"
                                 >
                                     Select Product
                                 </button>
@@ -431,9 +431,13 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
             </div>
             <div className="text-right mr-4 w-40 text-pencil font-bold text-xl flex justify-end items-center">
               {item.cost === 'searching' && (
-                  <div className="flex items-center justify-end gap-2 text-pencil-light text-base font-normal">
-                      <SpinnerIcon className="w-5 h-5" />
-                      <span>Searching...</span>
+                  <div className="w-full max-w-[50px]">
+                      <p className="text-sm text-pencil-light text-right mb-1 -mt-1">Searching...</p>
+                      <div className="w-full bg-paper border border-pencil/50 rounded-full h-2 overflow-hidden">
+                          <div
+                              className="bg-gradient-to-r from-paper via-ink to-paper bg-[length:200%_100%] h-full rounded-full animate-progress-wave"
+                          ></div>
+                      </div>
                   </div>
               )}
 

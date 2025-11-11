@@ -30,43 +30,39 @@ export const fetchProductSuggestions = async (
 ): Promise<ProductSuggestion[] | 'error'> => {
   const model = 'gemini-2.5-flash';
   
-  const prompt = `You are an expert materials cost estimator for tradespeople operating in ${country.name}.
-Your task is to find up to 5 specific, purchasable products matching the user's query and return them in a structured JSON format.
-
-**Search Details:**
-*   **Country:** ${country.name}
-*   **Currency:** ${country.currency}
-*   **Query:** "${itemName}"
-*   **Quantity:** ${quantity}
-*   **Preferred Suppliers:** ${sources && sources.trim() ? sources : 'Search major, reputable suppliers for tradespeople.'}
-
-**Instructions:**
-1.  Find matching products from online suppliers. Prioritize preferred suppliers if listed.
-2.  For each product, calculate the total price for the required quantity (${quantity}). This should be the final price in ${country.currency}.
-3.  Also provide the effective price for a single unit.
-4.  You MUST provide a direct URL to the product page for each suggestion.
-
-**Output Format:**
-Respond ONLY with a valid JSON object. Do not include any other text, explanations, or markdown formatting. The JSON structure is:
+  const systemInstruction = `You are an expert materials sourcing agent for tradespeople.
+Your task is to find purchasable products that match the user's request.
+You must respond ONLY with a valid JSON object inside a JSON markdown block.
+The JSON object must conform to this structure:
 {
   "suggestions": [
     {
-      "name": "<Full Product Name>",
-      "supplier": "<Supplier Name>",
-      "pricePerUnit": <number>,
-      "totalPrice": <number>,
-      "productUrl": "<Direct product URL>"
+      "name": "Full Product Name",
+      "supplier": "Supplier Name",
+      "pricePerUnit": 10.50,
+      "totalPrice": 21.00,
+      "productUrl": "https://example.com/product"
     }
   ]
 }
+If no products are found, return: {"suggestions": []}.
+Do not include any other text or explanations.`;
 
-If no products are found, return: {"suggestions": []}.`;
+  const userPrompt = `Please find up to 5 product suggestions based on these details:
+- Search Query: "${itemName}"
+- Quantity Required: ${quantity}
+- Country for Suppliers: ${country.name}
+- Currency for Pricing: ${country.currency}
+- Preferred Suppliers (if any): ${sources && sources.trim() ? sources : 'Any reputable supplier.'}
+
+For each suggestion, provide the full product name, the supplier, the price for a single unit, the total price for the specified quantity, and a direct URL to the product page.`;
 
   try {
     const response = await ai.models.generateContent({
         model: model,
-        contents: prompt,
+        contents: userPrompt,
         config: {
+          systemInstruction: systemInstruction,
           tools: [{ googleSearch: {} }],
         },
     });
