@@ -1,21 +1,33 @@
 import React, { useState } from 'react';
-import { ShoppingList, Country } from '../types';
+import { ShoppingList } from '../types';
 import ListItemTile from './ListItemTile';
 import Bin from './Bin';
 import PlusIcon from './icons/PlusIcon';
-import { countries } from '../utils/countries';
-import GlobeIcon from './icons/GlobeIcon';
+import UserIcon from './icons/UserIcon';
+
+// Fix: Define the firebase namespace and nested Timestamp type for TypeScript.
+// This allows using firebase.firestore.Timestamp as a type.
+declare namespace firebase {
+  namespace firestore {
+    interface Timestamp {
+      toDate(): Date;
+    }
+  }
+}
+
+// This tells TypeScript that a 'firebase' object exists in the global scope
+declare const firebase: any;
 
 interface ListPageProps {
   lists: ShoppingList[];
+  user: any;
   onAddList: (name: string) => void;
   onDeleteList: (id: string) => void;
   onSelectList: (id: string) => void;
-  country: Country;
-  onCountryChange: (country: Country) => void;
+  onSignOut: () => void;
 }
 
-const ListPage: React.FC<ListPageProps> = ({ lists, onAddList, onDeleteList, onSelectList, country, onCountryChange }) => {
+const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteList, onSelectList, onSignOut }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -29,33 +41,28 @@ const ListPage: React.FC<ListPageProps> = ({ lists, onAddList, onDeleteList, onS
     }
   };
 
-  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedCountry = countries.find(c => c.code === e.target.value);
-    if (selectedCountry) {
-      onCountryChange(selectedCountry);
-    }
-  };
+  const sortedLists = [...lists].sort((a, b) => {
+    const getTime = (dateValue: firebase.firestore.Timestamp | string | undefined) => {
+        if (!dateValue) return 0;
+        // Handle Firestore Timestamp
+        if (typeof dateValue === 'object' && dateValue.toDate) {
+            return dateValue.toDate().getTime();
+        }
+        // Handle ISO string
+        if (typeof dateValue === 'string') {
+            return new Date(dateValue).getTime();
+        }
+        return 0;
+    };
 
-  const sortedLists = [...lists].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return getTime(b.createdAt) - getTime(a.createdAt);
+  });
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="flex justify-between items-center mb-8 gap-4">
         <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Smart Materials</h1>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <GlobeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-pencil-light pointer-events-none" />
-            <select
-              value={country.code}
-              onChange={handleCountryChange}
-              className="appearance-none bg-paper border-2 border-pencil rounded-full py-2 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-ink transition-colors"
-              aria-label="Select country"
-            >
-              {countries.map(c => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </select>
-          </div>
           <button
             onClick={() => setIsAdding(true)}
             className="bg-ink hover:bg-ink-light text-white rounded-full p-3 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
@@ -63,6 +70,18 @@ const ListPage: React.FC<ListPageProps> = ({ lists, onAddList, onDeleteList, onS
           >
             <PlusIcon />
           </button>
+           <div className="group relative">
+             <div className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center">
+                <UserIcon className="w-8 h-8 text-pencil" />
+             </div>
+             <div className="absolute top-full right-0 mt-2 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy opacity-0 group-hover:opacity-100 transition-opacity duration-200 invisible group-hover:visible z-10">
+                <div className="p-3 border-b border-pencil/20">
+                  <p className="font-bold truncate">{user.displayName || user.email}</p>
+                  <p className="text-sm text-pencil-light truncate">{user.email}</p>
+                </div>
+                <button onClick={onSignOut} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">Sign Out</button>
+             </div>
+           </div>
         </div>
       </header>
 
@@ -93,7 +112,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, onAddList, onDeleteList, onS
             <ListItemTile 
               key={list.id} 
               list={list}
-              country={country}
               onClick={() => onSelectList(list.id)}
               onDragStart={(id) => { setIsDragging(true); setDraggedItemId(id); }}
               onDragEnd={() => { setIsDragging(false); setDraggedItemId(null); }}

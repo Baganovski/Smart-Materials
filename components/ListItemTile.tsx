@@ -1,24 +1,17 @@
 
+
 import React from 'react';
-import { ShoppingList, Country } from '../types';
+import { ShoppingList } from '../types';
 
 interface ListItemTileProps {
   list: ShoppingList;
-  country: Country;
   onClick: () => void;
   onDragStart: (id: string) => void;
   onDragEnd: () => void;
 }
 
-const ListItemTile: React.FC<ListItemTileProps> = ({ list, country, onClick, onDragStart, onDragEnd }) => {
-  const totalCost = list.items.reduce((sum, item) => {
-    if (typeof item.cost === 'number') {
-      return sum + item.cost;
-    }
-    return sum;
-  }, 0);
-
-  const itemCount = list.items.length;
+const ListItemTile: React.FC<ListItemTileProps> = ({ list, onClick, onDragStart, onDragEnd }) => {
+  const itemCount = list.items?.length || 0;
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData('text/plain', list.id);
@@ -38,12 +31,6 @@ const ListItemTile: React.FC<ListItemTileProps> = ({ list, country, onClick, onD
       <p className="text-pencil-light text-base mb-4">
         {itemCount} {itemCount === 1 ? 'material' : 'materials'}
       </p>
-      <div className="flex justify-between items-baseline">
-        <span className="text-pencil-light text-sm">Est. Cost</span>
-        <span className="text-2xl font-bold text-ink whitespace-nowrap">
-          {`${country.symbol}${totalCost.toFixed(2)}`}
-        </span>
-      </div>
     </div>
   );
 };
