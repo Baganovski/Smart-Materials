@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ShoppingList, UserSettings } from '../types';
 import ListItemTile from './ListItemTile';
 import Bin from './Bin';
@@ -25,6 +25,8 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   // Fix: Added missing '=' in useState declaration.
   const [newListName, setNewListName] = useState('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   
   // State for drag-to-delete
   const [isDraggingForDelete, setIsDraggingForDelete] = useState(false);
@@ -54,6 +56,19 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       setListsForRender(listsSortedByDate);
     }
   }, [listsSortedByDate, draggedList]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userMenuRef]);
 
 
   const handleAddList = () => {
@@ -156,24 +171,33 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-ink hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-ink md:hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Add new list"
           >
             +
           </button>
-           <div className="group relative">
-             <div className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl">
+           <div className="relative" ref={userMenuRef}>
+             <button
+                onClick={() => setIsUserMenuOpen(prev => !prev)}
+                className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                aria-label="Open user menu"
+                aria-haspopup="true"
+                aria-expanded={isUserMenuOpen}
+             >
                 {(user.displayName || user.email)?.[0]?.toUpperCase() ?? 'U'}
-             </div>
-             <div className="absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy opacity-0 group-hover:opacity-100 transition-opacity duration-200 invisible group-hover:visible z-10">
+             </button>
+             <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 ${isUserMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                 <div className="p-3 border-b border-pencil/20">
                   <p className="font-bold truncate">{user.displayName || user.email}</p>
                   <p className="text-sm text-pencil-light truncate">{user.email}</p>
                 </div>
-                <button onClick={() => setIsCustomizeModalOpen(true)} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">
+                <button 
+                  onClick={() => { setIsCustomizeModalOpen(true); setIsUserMenuOpen(false); }} 
+                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
+                >
                   <span>Customize</span>
                 </button>
-                <button onClick={onSignOut} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">Sign Out</button>
+                <button onClick={onSignOut} className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors">Sign Out</button>
              </div>
            </div>
         </div>
@@ -193,8 +217,8 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
               autoFocus
             />
             <div className="flex justify-end gap-3">
-              <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
-              <button onClick={handleAddList} className="px-4 py-2 bg-ink hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Create</button>
+              <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
+              <button onClick={handleAddList} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Create</button>
             </div>
           </div>
         </div>

@@ -22,7 +22,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ onSelect, onClose }) => {
             <button
               key={color}
               onClick={() => onSelect(color)}
-              className="w-10 h-10 rounded-full border-2 border-pencil/20 transition-transform transform hover:scale-110"
+              className="w-10 h-10 rounded-full border-2 border-pencil/20 transition-transform transform md:hover:scale-110"
               style={{ backgroundColor: color }}
               aria-label={`Select color ${color}`}
             />

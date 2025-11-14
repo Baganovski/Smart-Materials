@@ -41,8 +41,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </div>
         </div>
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">{cancelText}</button>
-          <button onClick={onConfirm} className="px-4 py-2 bg-danger text-white rounded-md transition-transform transform hover:scale-105">{confirmText}</button>
+          <button onClick={onCancel} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">{cancelText}</button>
+          <button onClick={onConfirm} className="px-4 py-2 bg-danger text-white rounded-md transition-transform transform md:hover:scale-105">{confirmText}</button>
         </div>
       </div>
     </div>

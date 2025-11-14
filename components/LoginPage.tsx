@@ -80,7 +80,7 @@ const LoginPage: React.FC = () => {
                         
                         <button
                             type="submit"
-                            className="w-full bg-ink hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy hover:shadow-sketchy-hover transition-all duration-200"
+                            className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200"
                         >
                             {isSignUp ? 'Create Account' : 'Sign In'}
                         </button>
@@ -90,7 +90,7 @@ const LoginPage: React.FC = () => {
                             setIsSignUp(!isSignUp);
                             setError(null);
                         }}
-                        className="mt-6 text-pencil-light hover:text-ink transition-colors"
+                        className="mt-6 text-pencil-light md:hover:text-ink transition-colors"
                     >
                         {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
                     </button>

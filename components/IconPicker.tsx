@@ -23,7 +23,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose }) => {
                     <button
                         key={iconName}
                         onClick={() => onSelect(iconName)}
-                        className="flex items-center justify-center p-3 bg-highlighter/50 rounded-md hover:bg-ink/80 transition-colors"
+                        className="flex items-center justify-center p-3 bg-highlighter/50 rounded-md md:hover:bg-ink/80 transition-colors"
                         aria-label={`Select ${iconName} icon`}
                     >
                         <IconRenderer iconName={iconName} className="w-7 h-7" />

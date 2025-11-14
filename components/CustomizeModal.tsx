@@ -131,21 +131,21 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                         onDragStart={(e) => handleDragStart(e, status)}
                         onDragOver={(e) => handleDragOver(e, status)}
                         onDragEnd={handleDragEnd}
-                        className={`flex items-center gap-3 p-2 rounded-md transition-all ${isDragging ? 'bg-highlighter opacity-50' : 'bg-paper hover:bg-highlighter/50'}`}
+                        className={`flex items-center gap-3 p-2 rounded-md transition-all ${isDragging ? 'bg-highlighter opacity-50' : 'bg-paper md:hover:bg-highlighter/50'}`}
                     >
                         <div className="cursor-grab text-pencil/50">
                             <DragHandleIcon className="w-6 h-6" />
                         </div>
                         <button
                             onClick={() => setIsIconPickerOpen(status.id)}
-                            className="p-2 rounded-md hover:bg-ink/50 transition-colors"
+                            className="p-2 rounded-md md:hover:bg-ink/50 transition-colors"
                             aria-label={`Change icon for ${status.name}`}
                         >
                            <IconRenderer iconName={status.icon} className="w-6 h-6" style={{ color: status.color || '#333333' }} />
                         </button>
                         <button
                           onClick={() => setIsColorPickerOpen(status.id)}
-                          className="w-6 h-6 rounded-full border-2 border-pencil/20 transition-transform transform hover:scale-110"
+                          className="w-6 h-6 rounded-full border-2 border-pencil/20 transition-transform transform md:hover:scale-110"
                           style={{ backgroundColor: status.color || '#cccccc' }}
                           aria-label={`Change color for ${status.name}`}
                         />
@@ -158,7 +158,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                         {statuses.length > 1 && (
                             <button
                                 onClick={() => handleDeleteStatus(status.id)}
-                                className="p-2 rounded-full hover:bg-danger/10 text-pencil-light hover:text-danger transition-colors"
+                                className="p-2 rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger transition-colors"
                                 aria-label={`Delete status ${status.name}`}
                             >
                                 <TrashIcon className="w-5 h-5" />
@@ -169,19 +169,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
             })}
         </div>
         
-        <button onClick={handleAddStatus} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
+        <button onClick={handleAddStatus} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
             <PlusIcon className="w-5 h-5" />
             <span>Add Status</span>
         </button>
 
         <div className="flex justify-between items-center gap-3">
-          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors flex items-center gap-2" title="Reset to default statuses">
+          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors flex items-center gap-2" title="Reset to default statuses">
             <ArrowPathIcon className="w-5 h-5"/>
             <span>Reset</span>
           </button>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 bg-ink hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Save</button>
+            <button onClick={onClose} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Save</button>
           </div>
         </div>
 
