@@ -3,7 +3,7 @@ import { ShoppingList, ShoppingListItem, UserSettings, CustomStatus } from '../t
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
-import PrintIcon from './icons/PrintIcon';
+import ArrowUpOnSquareIcon from './icons/ArrowUpOnSquareIcon';
 import ClipboardIcon from './icons/ClipboardIcon';
 import DragHandleIcon from './icons/DragHandleIcon';
 import PencilIcon from './icons/PencilIcon';
@@ -345,9 +345,9 @@ const handleUpdateItemName = (id: string, newName: string) => {
           <button 
             onClick={() => setIsPrintModalOpen(true)} 
             className="p-3 rounded-full hover:bg-highlighter transition-colors" 
-            aria-label="Open printable list"
+            aria-label="Export list"
           >
-            <PrintIcon className="w-7 h-7" />
+            <ArrowUpOnSquareIcon className="w-7 h-7" />
           </button>
         </div>
       </header>
@@ -355,7 +355,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       {isPrintModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
           <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Printable List</h2>
+            <h2 className="text-2xl font-bold mb-4">Export List</h2>
             <textarea
               readOnly
               className="w-full h-64 bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-y"
