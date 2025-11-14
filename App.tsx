@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingList } from './types';
+import { ShoppingList, UserSettings } from './types';
 import ListPage from './components/ListPage';
 import ShoppingListPage from './components/ShoppingListPage';
 import LoginPage from './components/LoginPage';
 import { auth, db } from './firebase';
 import SpinnerIcon from './components/icons/SpinnerIcon';
+import { getDefaultStatuses } from './utils/defaults';
 
 // This tells TypeScript that a 'firebase' object exists in the global scope
 declare const firebase: any;
@@ -14,21 +15,41 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      if (!currentUser) {
+        setLoading(false);
+        setUserSettings(null); // Clear settings on logout
+      }
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (user) {
+      // Fetch user settings
+      const settingsDocRef = db.collection('settings').doc(user.uid);
+      const unsubscribeSettings = settingsDocRef.onSnapshot(async (doc) => {
+        if (doc.exists) {
+          setUserSettings(doc.data() as UserSettings);
+        } else {
+          // No settings found, create defaults
+          const defaultSettings = { statuses: getDefaultStatuses() };
+          await settingsDocRef.set(defaultSettings);
+          setUserSettings(defaultSettings);
+        }
+        setLoading(false); // Move loading state change here
+      });
+
+      // Fetch lists
       const q = db.collection('lists')
         .where('uid', '==', user.uid);
 
-      const unsubscribe = q.onSnapshot((querySnapshot) => {
+      const unsubscribeLists = q.onSnapshot((querySnapshot) => {
         const listsData = querySnapshot.docs.map(doc => {
           const data = doc.data();
           return {
@@ -39,7 +60,10 @@ const App: React.FC = () => {
         });
         setLists(listsData);
       });
-      return () => unsubscribe();
+      return () => {
+        unsubscribeSettings();
+        unsubscribeLists();
+      };
     } else {
       setLists([]);
     }
@@ -76,6 +100,15 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const updateUserSettings = useCallback(async (newSettings: UserSettings) => {
+    if (!user) return;
+    try {
+      await db.collection('settings').doc(user.uid).set(newSettings);
+    } catch (error) {
+      console.error("Error updating settings: ", error);
+    }
+  }, [user]);
+
   const handleSignOut = async () => {
     try {
       await auth.signOut();
@@ -86,7 +119,7 @@ const App: React.FC = () => {
 
   const selectedList = lists.find(list => list.id === selectedListId);
 
-  if (loading) {
+  if (loading || (user && !userSettings)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <SpinnerIcon className="w-12 h-12" />
@@ -98,11 +131,12 @@ const App: React.FC = () => {
     <div className="min-h-screen font-sans">
       {!user ? (
         <LoginPage />
-      ) : selectedList ? (
+      ) : selectedList && userSettings ? (
         <ShoppingListPage 
           list={selectedList} 
           onBack={() => setSelectedListId(null)}
           onUpdateList={updateList}
+          userSettings={userSettings}
         />
       ) : (
         <ListPage 
@@ -113,6 +147,8 @@ const App: React.FC = () => {
           onSignOut={handleSignOut}
           onUpdateList={updateList}
           user={user}
+          userSettings={userSettings}
+          onUpdateUserSettings={updateUserSettings}
         />
       )}
     </div>

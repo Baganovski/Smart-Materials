@@ -1,41 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ShoppingList, ShoppingListItem, ItemStatus } from '../types';
+import { ShoppingList, ShoppingListItem, UserSettings, CustomStatus } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import PrintIcon from './icons/PrintIcon';
 import ClipboardIcon from './icons/ClipboardIcon';
-import SquareIcon from './icons/SquareIcon';
-import TruckIcon from './icons/TruckIcon';
-import CheckSquareIcon from './icons/CheckSquareIcon';
-import ArrowUturnLeftIcon from './icons/ArrowUturnLeftIcon';
 import DragHandleIcon from './icons/DragHandleIcon';
 import PencilIcon from './icons/PencilIcon';
-
-const statusOrder: ItemStatus[] = ['listed', 'ordered', 'collected', 'returned'];
-
-const StatusIcon: React.FC<{ status: ItemStatus }> = ({ status }) => {
-    switch (status) {
-        case 'ordered':
-            return <TruckIcon className="w-6 h-6 text-blue-600" />;
-        case 'collected':
-            return <CheckSquareIcon className="w-6 h-6 text-ink" />;
-        case 'returned':
-            return <ArrowUturnLeftIcon className="w-6 h-6 text-danger" />;
-        case 'listed':
-        default:
-            return <SquareIcon className="w-6 h-6 text-pencil-light" />;
-    }
-};
-
+import IconRenderer from './icons/IconRenderer';
 
 interface ShoppingListPageProps {
   list: ShoppingList;
+  userSettings: UserSettings;
   onBack: () => void;
   onUpdateList: (list: ShoppingList) => void;
 }
 
-const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpdateList }) => {
+const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings, onBack, onUpdateList }) => {
   const [items, setItems] = useState<ShoppingListItem[]>(list.items || []);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState('1');
@@ -49,26 +30,28 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
   
   const stableOnUpdateList = useCallback(onUpdateList, [onUpdateList]);
   
+  const statusMap = useMemo(() => 
+    new Map(userSettings.statuses.map(s => [s.id, s])), 
+    [userSettings.statuses]
+  );
+  
   // Change body background color to feel like we're on the sticky note
   useEffect(() => {
     document.body.classList.remove('bg-paper');
     document.body.classList.add('bg-sticky-note');
 
-    // Cleanup function to restore the original background color when the component unmounts.
     return () => {
       document.body.classList.add('bg-paper');
       document.body.classList.remove('bg-sticky-note');
     };
-  }, []); // Empty dependency array ensures this runs only on mount and unmount.
+  }, []);
   
   useEffect(() => {
-    // Only call update if the items have actually changed from the prop
     if (JSON.stringify(items) !== JSON.stringify(list.items || [])) {
       stableOnUpdateList({ ...list, items });
     }
   }, [items, list, stableOnUpdateList]);
 
-  // Sync local state if the list prop changes from upstream
   useEffect(() => {
     setItems(list.items || []);
   }, [list.items]);
@@ -84,7 +67,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
         id: Date.now().toString(),
         name,
         quantity,
-        status: 'listed',
+        status: userSettings.statuses[0]?.id || 'listed', // Default to first status
     };
 
     setItems(prevItems => [newItem, ...prevItems]);
@@ -96,9 +79,9 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
     setItems(prevItems =>
       prevItems.map(item => {
         if (item.id === id) {
-          const currentIndex = statusOrder.indexOf(item.status);
-          const nextIndex = (currentIndex + 1) % statusOrder.length;
-          return { ...item, status: statusOrder[nextIndex] };
+          const currentIndex = userSettings.statuses.findIndex(s => s.id === item.status);
+          const nextIndex = (currentIndex + 1) % userSettings.statuses.length;
+          return { ...item, status: userSettings.statuses[nextIndex].id };
         }
         return item;
       })
@@ -165,18 +148,15 @@ const handleUpdateItemName = (id: string, newName: string) => {
     const y = e.clientY - rect.top;
     const height = rect.height;
 
-    // Prevent flickering by creating a "dead zone" in the middle of the tile.
-    // The indicator only changes when the cursor is in the top or bottom 35% of the tile.
     const threshold = height * 0.35;
 
-    let newDropIndex: number | null = dropIndicatorIndex; // Default to current value
+    let newDropIndex: number | null = dropIndicatorIndex; 
 
     if (y < threshold) {
         newDropIndex = index;
     } else if (y > height - threshold) {
         newDropIndex = index + 1;
     }
-    // If in the middle 30%, `newDropIndex` remains `dropIndicatorIndex`, so no state change occurs.
 
     if (newDropIndex !== dropIndicatorIndex) {
         setDropIndicatorIndex(newDropIndex);
@@ -227,21 +207,21 @@ const handleUpdateItemName = (id: string, newName: string) => {
     }
 
     const groupedItems = items.reduce((acc, item) => {
-      const status = item.status;
-      if (!acc[status]) {
-        acc[status] = [];
+      const statusId = item.status;
+      if (!acc[statusId]) {
+        acc[statusId] = [];
       }
-      acc[status].push(item);
+      acc[statusId].push(item);
       return acc;
-    }, {} as Record<ItemStatus, ShoppingListItem[]>);
+    }, {} as Record<string, ShoppingListItem[]>);
 
-    const listBody = statusOrder.map(status => {
-      const itemsForStatus = groupedItems[status];
+    const listBody = userSettings.statuses.map(status => {
+      const itemsForStatus = groupedItems[status.id];
       if (!itemsForStatus || itemsForStatus.length === 0) {
         return '';
       }
       
-      const statusTitle = status.charAt(0).toUpperCase() + status.slice(1);
+      const statusTitle = status.name.charAt(0).toUpperCase() + status.name.slice(1);
       const itemsString = itemsForStatus
         .map(item => `  - ${item.quantity}x ${item.name}`)
         .join('\n');
@@ -250,7 +230,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     }).filter(Boolean).join('\n\n');
     
     return `${title}${listBody}`;
-  }, [items, list.name]);
+  }, [items, list.name, userSettings.statuses]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(printableList).then(() => {
@@ -361,7 +341,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
         onDragOver={(e) => e.preventDefault()}
       >
         {items.length > 0 ? items.map((item, index) => {
-          const isDone = item.status === 'collected' || item.status === 'returned';
+          const currentStatus = statusMap.get(item.status);
+          const isDraggable = true; // For now, all items are draggable
           const isDragging = draggedItem?.id === item.id;
           return (
             <React.Fragment key={item.id}>
@@ -369,24 +350,24 @@ const handleUpdateItemName = (id: string, newName: string) => {
                   <div className="h-1.5 bg-ink rounded-full my-1 transition-all"></div>
               )}
               <div 
-                draggable={!isDone}
-                onDragStart={(e) => !isDone && handleDragStart(e, item)}
+                draggable={isDraggable}
+                onDragStart={(e) => isDraggable && handleDragStart(e, item)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center p-4 transition-all group ${ isDone ? 'opacity-60' : '' } ${ isDragging ? 'opacity-30' : '' } border-b-2 border-dashed border-pencil/10`}
+                className={`flex items-center p-4 transition-all group ${ isDragging ? 'opacity-30' : '' } border-b-2 border-dashed border-pencil/10`}
               >
-                <div className={`mr-2 ${!isDone ? 'cursor-grab' : 'cursor-default'}`}>
+                <div className={`mr-2 ${isDraggable ? 'cursor-grab' : 'cursor-default'}`}>
                   <DragHandleIcon className="w-6 h-6 text-pencil/30 group-hover:text-pencil/60 transition-colors" />
                 </div>
                 <button
                   onClick={() => handleCycleStatus(item.id)}
                   className="p-1 mr-2"
-                  aria-label={`Change status for ${item.name}, current status is ${item.status}`}
+                  aria-label={`Change status for ${item.name}, current status is ${currentStatus?.name}`}
                 >
-                  <StatusIcon status={item.status} />
+                  <IconRenderer iconName={currentStatus?.icon || 'SquareIcon'} className="w-6 h-6 text-pencil-light" />
                 </button>
                 <div className="flex-1">
-                    <div className={`flex items-center gap-3 text-xl ${isDone ? 'text-pencil-light' : 'text-pencil'}`}>
+                    <div className="flex items-center gap-3 text-xl text-pencil">
                         {editingQuantityItemId === item.id ? (
                             <>
                                 <input
@@ -409,17 +390,17 @@ const handleUpdateItemName = (id: string, newName: string) => {
                                     }}
                                     aria-label={`Edit quantity for ${item.name}`}
                                 />
-                                <span className={`font-bold ${isDone ? 'line-through' : ''}`}>x</span>
+                                <span className="font-bold">x</span>
                             </>
                         ) : (
                             <span
-                                onClick={() => !isDone && setEditingQuantityItemId(item.id)}
-                                className={`font-bold p-1 -ml-1 rounded-md transition-colors ${!isDone ? 'cursor-pointer hover:bg-highlighter' : 'cursor-default'}`}
+                                onClick={() => setEditingQuantityItemId(item.id)}
+                                className="font-bold p-1 -ml-1 rounded-md transition-colors cursor-pointer hover:bg-highlighter"
                             >
                                 {item.quantity}x
                             </span>
                         )}
-                        <div className={`flex-1 ${isDone ? 'line-through' : ''}`}>
+                        <div className="flex-1">
                           {editingNameItemId === item.id ? (
                             <input
                               type="text"
@@ -442,8 +423,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
                             />
                           ) : (
                             <span 
-                              onClick={() => !isDone && setEditingNameItemId(item.id)}
-                              className={`inline-block w-full p-1 -ml-1 rounded-md transition-colors ${!isDone ? 'cursor-pointer hover:bg-highlighter' : 'cursor-default'}`}
+                              onClick={() => setEditingNameItemId(item.id)}
+                              className="inline-block w-full p-1 -ml-1 rounded-md transition-colors cursor-pointer hover:bg-highlighter"
                             >
                               {item.name}
                             </span>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingList } from '../types';
+import { ShoppingList, UserSettings } from '../types';
 import ListItemTile from './ListItemTile';
 import Bin from './Bin';
 import PlusIcon from './icons/PlusIcon';
 import UserIcon from './icons/UserIcon';
 import ConfirmationModal from './ConfirmationModal';
+import CustomizeModal from './CustomizeModal'; // Import the new modal
+import CogIcon from './icons/CogIcon';
 
 // Fix: Add firebase declaration to provide an object for the global types.
 declare const firebase: any;
@@ -12,16 +14,19 @@ declare const firebase: any;
 interface ListPageProps {
   lists: ShoppingList[];
   user: any;
+  userSettings: UserSettings | null;
   onAddList: (name: string) => void;
   onDeleteList: (id: string) => void;
   onSelectList: (id: string) => void;
   onSignOut: () => void;
   onUpdateList: (list: ShoppingList) => void;
+  onUpdateUserSettings: (settings: UserSettings) => void;
 }
 
-const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList }) => {
+const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   
   // State for drag-to-delete
   const [isDraggingForDelete, setIsDraggingForDelete] = useState(false);
@@ -168,7 +173,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
     }
   };
 
-
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
@@ -190,6 +194,10 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
                   <p className="font-bold truncate">{user.displayName || user.email}</p>
                   <p className="text-sm text-pencil-light truncate">{user.email}</p>
                 </div>
+                <button onClick={() => setIsCustomizeModalOpen(true)} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors flex items-center gap-2">
+                  <CogIcon className="w-5 h-5" />
+                  <span>Customize</span>
+                </button>
                 <button onClick={onSignOut} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">Sign Out</button>
              </div>
            </div>
@@ -215,6 +223,15 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
             </div>
           </div>
         </div>
+      )}
+
+      {userSettings && (
+        <CustomizeModal 
+          isOpen={isCustomizeModalOpen}
+          onClose={() => setIsCustomizeModalOpen(false)}
+          settings={userSettings}
+          onSave={onUpdateUserSettings}
+        />
       )}
 
       {listsForRender.length > 0 ? (

@@ -15,7 +15,7 @@ declare global {
   }
 }
 
-export type ItemStatus = 'listed' | 'ordered' | 'collected' | 'returned';
+export type ItemStatus = string;
 
 export interface ShoppingListItem {
   id: string;
@@ -35,4 +35,14 @@ export interface ShoppingList {
 export interface Country {
   name: string;
   code: string;
+}
+
+export interface CustomStatus {
+  id: string;
+  name: string;
+  icon: string;
+}
+
+export interface UserSettings {
+  statuses: CustomStatus[];
 }
