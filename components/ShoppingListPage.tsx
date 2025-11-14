@@ -220,10 +220,10 @@ const handleUpdateItemName = (id: string, newName: string) => {
   };
 
   const printableList = useMemo(() => {
-    const title = `Job: ${list.name}\n====================\n\n`;
+    const title = `List: ${list.name}\n====================\n\n`;
 
     if (items.length === 0) {
-      return `Job: ${list.name}\n====================\n\nNo materials in this list.`;
+      return `List: ${list.name}\n====================\n\nNo items in this list.`;
     }
 
     const groupedItems = items.reduce((acc, item) => {
@@ -300,7 +300,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
               <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 group-hover:opacity-100 transition-opacity" />
             </h1>
           )}
-          <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'material' : 'materials'} listed</p>
+          <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'item' : 'items'} listed</p>
         </div>
         <button 
           onClick={() => setIsPrintModalOpen(true)} 
@@ -319,7 +319,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
               readOnly
               className="w-full h-64 bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-y"
               value={printableList}
-              aria-label="Printable materials list"
+              aria-label="Printable item list"
             />
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsPrintModalOpen(false)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Close</button>
@@ -346,11 +346,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
           type="text"
           value={newItemName}
           onChange={(e) => setNewItemName(e.target.value)}
-          placeholder="Add a new material..."
+          placeholder="Add a new item..."
           className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-          aria-label="New material name"
+          aria-label="New item name"
         />
-        <button type="submit" className="bg-ink hover:bg-ink-light text-pencil rounded-md p-3 transition-colors flex justify-center items-center" aria-label="Add material">
+        <button type="submit" className="bg-ink hover:bg-ink-light text-pencil rounded-md p-3 transition-colors flex justify-center items-center" aria-label="Add item">
           <PlusIcon />
         </button>
       </form>
@@ -459,7 +459,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
           );
         }) : (
             <div className="text-center py-10 border-2 border-dashed border-pencil/30 rounded-lg">
-                <p className="text-pencil-light text-xl">No materials yet. Add one above to start your list.</p>
+                <p className="text-pencil-light text-xl">No items yet. Add one above to start your list.</p>
             </div>
         )}
         {dropIndicatorIndex === items.length && (

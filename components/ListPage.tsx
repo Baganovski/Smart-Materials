@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingList } from '../types';
 import ListItemTile from './ListItemTile';
 import Bin from './Bin';
@@ -29,15 +29,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
 
   // State for drag-to-reorder
   const [draggedList, setDraggedList] = useState<ShoppingList | null>(null);
-  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
-
-  const handleAddList = () => {
-    if (newListName.trim()) {
-      onAddList(newListName.trim());
-      setNewListName('');
-      setIsAdding(false);
-    }
-  };
+  const [listsForRender, setListsForRender] = useState<ShoppingList[]>([]);
 
   const sortedLists = [...lists].sort((a, b) => {
     const getTime = (dateValue: firebase.firestore.Timestamp | string | undefined) => {
@@ -56,71 +48,76 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
     return getTime(b.createdAt) - getTime(a.createdAt);
   });
 
+  // Effect to synchronize the renderable list with the sorted list from props.
+  // This ensures the component reflects the latest data, but avoids overriding
+  // the visual reordering state while a drag operation is in progress.
+  useEffect(() => {
+    if (!draggedList) {
+      setListsForRender(sortedLists);
+    }
+  }, [sortedLists, draggedList]);
+
+
+  const handleAddList = () => {
+    if (newListName.trim()) {
+      onAddList(newListName.trim());
+      setNewListName('');
+      setIsAdding(false);
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, list: ShoppingList) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', list.id);
     // Defer state update to allow browser to capture the drag image before the element's style changes.
     // This prevents the "ghost" image from flickering or capturing the placeholder style.
     setTimeout(() => {
-      setIsDraggingForDelete(true);
       setDraggedList(list);
+      setIsDraggingForDelete(true);
     }, 0);
   };
 
   const handleDragEnd = () => {
-    setIsDraggingForDelete(false);
     setDraggedList(null);
-    setDropIndicatorIndex(null);
+    setIsDraggingForDelete(false);
   };
 
-  const handleDragOverList = (e: React.DragEvent, index: number) => {
+  const handleDragOverList = (e: React.DragEvent, hoverList: ShoppingList) => {
     e.preventDefault();
-    if (!draggedList || draggedList.id === sortedLists[index].id) return;
+    if (!draggedList || draggedList.id === hoverList.id) return;
 
-    const target = e.currentTarget as HTMLDivElement;
-    const rect = target.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const height = rect.height;
+    const currentLists = listsForRender;
+    const dragIndex = currentLists.findIndex(l => l.id === draggedList.id);
+    const hoverIndex = currentLists.findIndex(l => l.id === hoverList.id);
 
-    // Prevent flickering by creating a "dead zone" in the middle of the tile.
-    // The indicator only changes when the cursor is in the top or bottom 35% of the tile.
-    const threshold = height * 0.35;
-    
-    let newDropIndex: number | null = dropIndicatorIndex; // Default to current value
-
-    if (y < threshold) {
-      newDropIndex = index;
-    } else if (y > height - threshold) {
-      newDropIndex = index + 1;
-    }
-    // If in the middle 30%, `newDropIndex` remains `dropIndicatorIndex`, so no state change occurs.
-
-    if (newDropIndex !== dropIndicatorIndex) {
-      setDropIndicatorIndex(newDropIndex);
-    }
-  };
-
-  const handleDropOnList = () => {
-    if (draggedList === null || dropIndicatorIndex === null) return;
-    
-    const dragFromIndex = sortedLists.findIndex(list => list.id === draggedList.id);
-    if (dragFromIndex === -1) return;
-
-    // Calculate the target index in the array *after* the dragged item is notionally removed.
-    const targetIndex = dropIndicatorIndex > dragFromIndex ? dropIndicatorIndex - 1 : dropIndicatorIndex;
-
-    // If the item is dropped in its original position, do nothing.
-    if (targetIndex === dragFromIndex) {
+    if (dragIndex === -1 || hoverIndex === -1 || dragIndex === hoverIndex) {
       return;
     }
 
-    // To correctly find the neighbors, we look at the list as if the dragged item wasn't there.
-    const otherLists = sortedLists.filter(l => l.id !== draggedList.id);
+    // Reorder the array to provide immediate visual feedback.
+    const reorderedLists = [...currentLists];
+    const [movedItem] = reorderedLists.splice(dragIndex, 1);
+    reorderedLists.splice(hoverIndex, 0, movedItem);
 
-    // The item before the drop position.
-    const prevList = otherLists[targetIndex - 1] || null;
-    // The item at the drop position (which will be pushed down).
-    const nextList = otherLists[targetIndex] || null;
+    setListsForRender(reorderedLists);
+  };
+
+  const handleDropOnList = () => {
+    if (draggedList === null) return;
+    
+    // The listsForRender state now holds the final desired order.
+    const finalIndex = listsForRender.findIndex(list => list.id === draggedList.id);
+    if (finalIndex === -1) return;
+
+    // Check if the order actually changed from the original sorted list to avoid unnecessary writes.
+    const originalIndex = sortedLists.findIndex(list => list.id === draggedList.id);
+    if (finalIndex === originalIndex) {
+      return;
+    }
+
+    // To find the correct neighbors, we use the final visual ordering.
+    const prevList = listsForRender[finalIndex - 1] || null;
+    const nextList = listsForRender[finalIndex + 1] || null;
 
     const getTimestamp = (dateValue: any): number => {
         if (!dateValue) return new Date().getTime();
@@ -140,13 +137,13 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
     const nextTime = nextList ? getTimestamp(nextList.createdAt) : 0;
 
     if (prevList && nextList) {
-        // Dropped between two items: find the midpoint.
+        // Dropped between two items: find the midpoint timestamp.
         newTimestampMs = (prevTime + nextTime) / 2;
     } else if (prevList) {
-        // Dropped at the end: make it slightly older than the last item.
+        // Dropped at the end: make it slightly older than the previous last item.
         newTimestampMs = prevTime - 1000; 
     } else if (nextList) {
-        // Dropped at the beginning: make it slightly newer than the first item.
+        // Dropped at the beginning: make it slightly newer than the previous first item.
         newTimestampMs = nextTime + 1000;
     } else {
         // This case should not happen in a list with more than one item.
@@ -202,13 +199,13 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
       {isAdding && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
           <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-sm">
-            <h2 className="text-2xl font-bold mb-4">Create New Job List</h2>
+            <h2 className="text-2xl font-bold mb-4">Create New List</h2>
             <input
               type="text"
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddList()}
-              placeholder="e.g., Miller Residence Bathroom"
+              placeholder="e.g., Kitchen Remodel Project"
               className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
               autoFocus
             />
@@ -220,29 +217,27 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
         </div>
       )}
 
-      {sortedLists.length > 0 ? (
+      {listsForRender.length > 0 ? (
         <div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           onDrop={handleDropOnList}
           onDragOver={(e) => e.preventDefault()}
         >
-          {sortedLists.map((list, index) => (
+          {listsForRender.map((list) => (
             <ListItemTile
               key={list.id}
               list={list}
               onClick={() => !draggedList && onSelectList(list.id)}
               onDragStart={(e) => handleDragStart(e, list)}
-              onDragOver={(e) => handleDragOverList(e, index)}
+              onDragOver={(e) => handleDragOverList(e, list)}
               onDragEnd={handleDragEnd}
               isDragging={draggedList?.id === list.id}
-              showDropIndicatorBefore={dropIndicatorIndex === index}
-              showDropIndicatorAfter={index === sortedLists.length - 1 && dropIndicatorIndex === sortedLists.length}
             />
           ))}
         </div>
       ) : (
         <div className="text-center py-20 border-2 border-dashed border-pencil/30 rounded-lg">
-          <p className="text-pencil-light text-xl">No job lists yet. Create one to get started!</p>
+          <p className="text-pencil-light text-xl">No lists yet. Create one to get started!</p>
         </div>
       )}
       

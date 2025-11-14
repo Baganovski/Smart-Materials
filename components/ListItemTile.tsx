@@ -8,8 +8,6 @@ interface ListItemTileProps {
   onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragEnd: () => void;
-  showDropIndicatorBefore: boolean;
-  showDropIndicatorAfter: boolean;
 }
 
 const ListItemTile: React.FC<ListItemTileProps> = ({ 
@@ -19,8 +17,6 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
   onDragStart, 
   onDragOver, 
   onDragEnd,
-  showDropIndicatorBefore,
-  showDropIndicatorAfter
 }) => {
   const itemCount = list.items?.length || 0;
 
@@ -41,23 +37,15 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       onDragEnd={onDragEnd}
       className={`${tileClasses} ${isDragging ? draggingClasses : ''}`}
     >
-      {showDropIndicatorBefore && (
-        <div className="absolute left-2 right-2 -top-3 h-1.5 bg-ink rounded-full animate-pop-in pointer-events-none z-10"></div>
-      )}
-
       {/* Adhesive strip */}
       <div className={`absolute top-0 left-0 right-0 h-8 bg-black/5 border-b border-black/10 ${contentClasses}`} />
       
       <div className={`pt-10 px-6 pb-6 ${contentClasses}`}>
         <h3 className="text-2xl font-bold text-pencil truncate mb-2">{list.name}</h3>
         <p className="text-pencil-light text-base mb-4">
-          {itemCount} {itemCount === 1 ? 'material' : 'materials'}
+          {itemCount} {itemCount === 1 ? 'item' : 'items'}
         </p>
       </div>
-      
-      {showDropIndicatorAfter && (
-        <div className="absolute left-2 right-2 -bottom-3 h-1.5 bg-ink rounded-full animate-pop-in pointer-events-none z-10"></div>
-      )}
     </div>
   );
 };
