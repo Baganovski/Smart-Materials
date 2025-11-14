@@ -4,9 +4,8 @@ import ListItemTile from './ListItemTile';
 import Bin from './Bin';
 import ConfirmationModal from './ConfirmationModal';
 import CustomizeModal from './CustomizeModal';
-
-// Fix: Add firebase declaration to provide an object for the global types.
-declare const firebase: any;
+// Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
+import { auth, firebase } from '../firebase';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -18,14 +17,17 @@ interface ListPageProps {
   onSignOut: () => void;
   onUpdateList: (list: ShoppingList) => void;
   onUpdateUserSettings: (settings: UserSettings) => void;
+  onDeleteAccount: () => void;
 }
 
-const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings }) => {
+const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings, onDeleteAccount }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
+  const [passwordChangeMessage, setPasswordChangeMessage] = useState('');
   
   // State for drag-to-delete
   const [isDraggingForDelete, setIsDraggingForDelete] = useState(false);
@@ -68,6 +70,15 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [userMenuRef]);
+
+  useEffect(() => {
+    // When the menu closes, reset the password change message
+    if (!isUserMenuOpen) {
+      // Delay reset slightly to prevent message disappearing during fade-out animation
+      const timer = setTimeout(() => setPasswordChangeMessage(''), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isUserMenuOpen]);
 
 
   const handleAddList = () => {
@@ -163,6 +174,23 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
     }
   };
   
+  const handleConfirmAccountDelete = () => {
+    setIsDeleteAccountConfirmOpen(false);
+    onDeleteAccount();
+  };
+
+  const handleChangePassword = async () => {
+    if (user?.email) {
+      try {
+        await auth.sendPasswordResetEmail(user.email);
+        setPasswordChangeMessage('Check your email for a reset link.');
+      } catch (error) {
+        console.error("Error sending password reset email:", error);
+        setPasswordChangeMessage('Error: Failed to send link.');
+      }
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
@@ -185,18 +213,38 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
              >
                 {(user.displayName || user.email)?.[0]?.toUpperCase() ?? 'U'}
              </button>
-             <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 ${isUserMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                <div className="p-3 border-b border-pencil/20">
-                  <p className="font-bold truncate">{user.displayName || user.email}</p>
-                  <p className="text-sm text-pencil-light truncate">{user.email}</p>
-                </div>
-                <button 
-                  onClick={() => { setIsCustomizeModalOpen(true); setIsUserMenuOpen(false); }} 
-                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
-                >
-                  <span>Customize</span>
-                </button>
-                <button onClick={onSignOut} className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors">Sign Out</button>
+             <div className={`absolute top-10 right-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 ${isUserMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                {passwordChangeMessage ? (
+                  <div className={`p-4 text-center ${passwordChangeMessage.includes('Error') ? 'text-danger' : 'text-pencil-light'}`}>
+                    {passwordChangeMessage}
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-3 border-b border-pencil/20">
+                      <p className="font-bold truncate">{user.displayName || user.email}</p>
+                      <p className="text-sm text-pencil-light truncate">{user.email}</p>
+                    </div>
+                    <button 
+                      onClick={() => { setIsCustomizeModalOpen(true); setIsUserMenuOpen(false); }} 
+                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
+                    >
+                      <span>Customize</span>
+                    </button>
+                    <button 
+                      onClick={handleChangePassword} 
+                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
+                    >
+                      Change Password
+                    </button>
+                    <button onClick={onSignOut} className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20">Sign Out</button>
+                    <button 
+                      onClick={() => { setIsDeleteAccountConfirmOpen(true); setIsUserMenuOpen(false); }}
+                      className="w-full text-left px-3 py-2 text-danger md:hover:bg-danger/10 transition-colors border-t border-pencil/20"
+                    >
+                      Delete Account
+                    </button>
+                  </>
+                )}
              </div>
            </div>
         </div>
@@ -272,6 +320,15 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         onConfirm={handleConfirmDelete}
         onCancel={() => setListToDelete(null)}
         confirmText="Delete"
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteAccountConfirmOpen}
+        title="Delete Account"
+        message="Are you sure? This will permanently delete your account and ALL of your lists. This action cannot be undone."
+        onConfirm={handleConfirmAccountDelete}
+        onCancel={() => setIsDeleteAccountConfirmOpen(false)}
+        confirmText="Yes, delete my account"
       />
     </div>
   );

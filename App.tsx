@@ -3,15 +3,15 @@ import { ShoppingList, UserSettings } from './types';
 import ListPage from './components/ListPage';
 import ShoppingListPage from './components/ShoppingListPage';
 import LoginPage from './components/LoginPage';
-import { auth, db } from './firebase';
+import VerifyEmailPage from './components/VerifyEmailPage';
+// Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
+import { auth, db, firebase } from './firebase';
 import { getDefaultStatuses } from './utils/defaults';
-
-// This tells TypeScript that a 'firebase' object exists in the global scope
-declare const firebase: any;
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -19,8 +19,26 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
+      if (currentUser) {
+        // Reload user data from Firebase to get the latest emailVerified status
+        currentUser.reload().then(() => {
+          const freshUser = auth.currentUser;
+          if (freshUser && !freshUser.emailVerified) {
+            setUser(freshUser);
+            setNeedsVerification(true);
+          } else {
+            setUser(freshUser);
+            setNeedsVerification(false);
+          }
+        }).catch(() => {
+          // If reload fails (e.g., user deleted), sign them out
+          auth.signOut();
+        }).finally(() => {
+          setLoading(false);
+        });
+      } else {
+        setUser(null);
+        setNeedsVerification(false);
         setLoading(false);
         setUserSettings(null); // Clear settings on logout
       }
@@ -29,7 +47,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && !needsVerification) {
+      setLoading(true);
       // Fetch user settings
       const settingsDocRef = db.collection('settings').doc(user.uid);
       const unsubscribeSettings = settingsDocRef.onSnapshot(async (doc) => {
@@ -41,7 +60,7 @@ const App: React.FC = () => {
           await settingsDocRef.set(defaultSettings);
           setUserSettings(defaultSettings);
         }
-        setLoading(false); // Move loading state change here
+        setLoading(false);
       });
 
       // Fetch lists
@@ -65,8 +84,11 @@ const App: React.FC = () => {
       };
     } else {
       setLists([]);
+      if (!user) { // If user is null, ensure settings are cleared
+        setUserSettings(null);
+      }
     }
-  }, [user]);
+  }, [user, needsVerification]);
 
   const addList = async (name: string) => {
     if (!user) return;
@@ -115,10 +137,44 @@ const App: React.FC = () => {
       console.error("Error signing out: ", error);
     }
   };
+  
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    try {
+      // 1. Get all lists for the user
+      const listsQuery = db.collection('lists').where('uid', '==', user.uid);
+      const listsSnapshot = await listsQuery.get();
+      
+      // 2. Create a batch to delete all lists
+      const batch = db.batch();
+      listsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      // 3. Add settings deletion to the batch
+      const settingsRef = db.collection('settings').doc(user.uid);
+      batch.delete(settingsRef);
+      
+      // 4. Commit the batch
+      await batch.commit();
+      
+      // 5. Delete the user from Firebase Auth
+      await user.delete();
+
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      if (error.code === 'auth/requires-recent-login') {
+        alert("This is a sensitive action that requires a recent sign-in. Please sign out, sign back in, and then try deleting your account again.");
+      } else {
+        alert(`An error occurred while deleting your account: ${error.message}`);
+      }
+    }
+  };
 
   const selectedList = lists.find(list => list.id === selectedListId);
 
-  if (loading || (user && !userSettings)) {
+  if (loading || (user && !needsVerification && !userSettings)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-2xl text-pencil-light">Loading...</p>
@@ -126,11 +182,17 @@ const App: React.FC = () => {
     );
   }
 
+  if (!user) {
+    return <LoginPage />;
+  }
+  
+  if (needsVerification) {
+    return <VerifyEmailPage user={user} />;
+  }
+
   return (
     <div className="min-h-screen font-sans">
-      {!user ? (
-        <LoginPage />
-      ) : selectedList && userSettings ? (
+      {selectedList && userSettings ? (
         <ShoppingListPage 
           list={selectedList} 
           onBack={() => setSelectedListId(null)}
@@ -148,6 +210,7 @@ const App: React.FC = () => {
           user={user}
           userSettings={userSettings}
           onUpdateUserSettings={updateUserSettings}
+          onDeleteAccount={handleDeleteAccount}
         />
       )}
     </div>

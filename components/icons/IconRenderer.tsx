@@ -5,7 +5,6 @@ import CheckSquareIcon from './CheckSquareIcon';
 import TruckIcon from './TruckIcon';
 import ArrowUturnLeftIcon from './ArrowUturnLeftIcon';
 import ShoppingCartIcon from './ShoppingCartIcon';
-import PackageIcon from './PackageIcon';
 import BoxIcon from './BoxIcon';
 import ClipboardListIcon from './ClipboardListIcon';
 import StarIcon from './StarIcon';
@@ -19,6 +18,7 @@ import TagIcon from './TagIcon';
 import LightBulbIcon from './LightBulbIcon';
 import FireIcon from './FireIcon';
 import CheckCircleIcon from './CheckCircleIcon';
+import QuestionMarkCircleIcon from './QuestionMarkCircleIcon';
 
 // Define a map from string names to icon components
 const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
@@ -27,7 +27,6 @@ const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
   TruckIcon,
   ArrowUturnLeftIcon,
   ShoppingCartIcon,
-  PackageIcon,
   BoxIcon,
   ClipboardListIcon,
   StarIcon,
@@ -41,6 +40,7 @@ const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
   LightBulbIcon,
   FireIcon,
   CheckCircleIcon,
+  QuestionMarkCircleIcon,
 };
 
 interface IconRendererProps extends React.SVGProps<SVGSVGElement> {

@@ -1,5 +1,5 @@
-// This tells TypeScript that a 'firebase' object exists in the global scope
-declare const firebase: any;
+// Capture the global firebase object from the window, as it's loaded via a script tag.
+const firebase = (window as any).firebase;
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,8 +16,8 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-// Initialize Firebase services using the compat API from the global object
+// Initialize Firebase services using the compat API
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-export { auth, db };
+export { auth, db, firebase };
