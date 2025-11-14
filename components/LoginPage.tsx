@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">List Jotter</h1>
+            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Listfully</h1>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
                 {isSignUp ? 'Create an account to save your lists.' : 'Sign in to access your lists.'}
             </p>
