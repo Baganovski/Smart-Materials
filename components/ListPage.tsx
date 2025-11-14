@@ -4,18 +4,9 @@ import ListItemTile from './ListItemTile';
 import Bin from './Bin';
 import PlusIcon from './icons/PlusIcon';
 import UserIcon from './icons/UserIcon';
+import ConfirmationModal from './ConfirmationModal';
 
-// Fix: Define the firebase namespace and nested Timestamp type for TypeScript.
-// This allows using firebase.firestore.Timestamp as a type.
-declare namespace firebase {
-  namespace firestore {
-    interface Timestamp {
-      toDate(): Date;
-    }
-  }
-}
-
-// This tells TypeScript that a 'firebase' object exists in the global scope
+// Fix: Add firebase declaration to provide an object for the global types.
 declare const firebase: any;
 
 interface ListPageProps {
@@ -25,13 +16,20 @@ interface ListPageProps {
   onDeleteList: (id: string) => void;
   onSelectList: (id: string) => void;
   onSignOut: () => void;
+  onUpdateList: (list: ShoppingList) => void;
 }
 
-const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteList, onSelectList, onSignOut }) => {
+const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  
+  // State for drag-to-delete
+  const [isDraggingForDelete, setIsDraggingForDelete] = useState(false);
+  const [listToDelete, setListToDelete] = useState<ShoppingList | null>(null);
+
+  // State for drag-to-reorder
+  const [draggedList, setDraggedList] = useState<ShoppingList | null>(null);
+  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
 
   const handleAddList = () => {
     if (newListName.trim()) {
@@ -58,14 +56,130 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
     return getTime(b.createdAt) - getTime(a.createdAt);
   });
 
+  const handleDragStart = (e: React.DragEvent, list: ShoppingList) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', list.id);
+    // Defer state update to allow browser to capture the drag image before the element's style changes.
+    // This prevents the "ghost" image from flickering or capturing the placeholder style.
+    setTimeout(() => {
+      setIsDraggingForDelete(true);
+      setDraggedList(list);
+    }, 0);
+  };
+
+  const handleDragEnd = () => {
+    setIsDraggingForDelete(false);
+    setDraggedList(null);
+    setDropIndicatorIndex(null);
+  };
+
+  const handleDragOverList = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (!draggedList || draggedList.id === sortedLists[index].id) return;
+
+    const target = e.currentTarget as HTMLDivElement;
+    const rect = target.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    // Prevent flickering by creating a "dead zone" in the middle of the tile.
+    // The indicator only changes when the cursor is in the top or bottom 35% of the tile.
+    const threshold = height * 0.35;
+    
+    let newDropIndex: number | null = dropIndicatorIndex; // Default to current value
+
+    if (y < threshold) {
+      newDropIndex = index;
+    } else if (y > height - threshold) {
+      newDropIndex = index + 1;
+    }
+    // If in the middle 30%, `newDropIndex` remains `dropIndicatorIndex`, so no state change occurs.
+
+    if (newDropIndex !== dropIndicatorIndex) {
+      setDropIndicatorIndex(newDropIndex);
+    }
+  };
+
+  const handleDropOnList = () => {
+    if (draggedList === null || dropIndicatorIndex === null) return;
+    
+    const dragFromIndex = sortedLists.findIndex(list => list.id === draggedList.id);
+    if (dragFromIndex === -1) return;
+
+    // Calculate the target index in the array *after* the dragged item is notionally removed.
+    const targetIndex = dropIndicatorIndex > dragFromIndex ? dropIndicatorIndex - 1 : dropIndicatorIndex;
+
+    // If the item is dropped in its original position, do nothing.
+    if (targetIndex === dragFromIndex) {
+      return;
+    }
+
+    // To correctly find the neighbors, we look at the list as if the dragged item wasn't there.
+    const otherLists = sortedLists.filter(l => l.id !== draggedList.id);
+
+    // The item before the drop position.
+    const prevList = otherLists[targetIndex - 1] || null;
+    // The item at the drop position (which will be pushed down).
+    const nextList = otherLists[targetIndex] || null;
+
+    const getTimestamp = (dateValue: any): number => {
+        if (!dateValue) return new Date().getTime();
+        if (typeof dateValue === 'object' && dateValue.toDate) {
+            return dateValue.toDate().getTime();
+        }
+        if (typeof dateValue === 'string') {
+            return new Date(dateValue).getTime();
+        }
+        return new Date().getTime();
+    };
+
+    let newTimestampMs;
+
+    // Lists are sorted descending by timestamp (newest first).
+    const prevTime = prevList ? getTimestamp(prevList.createdAt) : 0;
+    const nextTime = nextList ? getTimestamp(nextList.createdAt) : 0;
+
+    if (prevList && nextList) {
+        // Dropped between two items: find the midpoint.
+        newTimestampMs = (prevTime + nextTime) / 2;
+    } else if (prevList) {
+        // Dropped at the end: make it slightly older than the last item.
+        newTimestampMs = prevTime - 1000; 
+    } else if (nextList) {
+        // Dropped at the beginning: make it slightly newer than the first item.
+        newTimestampMs = nextTime + 1000;
+    } else {
+        // This case should not happen in a list with more than one item.
+        return; 
+    }
+    
+    if (!newTimestampMs || isNaN(newTimestampMs)) {
+      console.error("Failed to calculate a valid timestamp for reordering.");
+      return;
+    }
+
+    // Fix: Use the globally typed firebase object to access Timestamp.
+    const newCreatedAt = firebase.firestore.Timestamp.fromMillis(newTimestampMs);
+    
+    onUpdateList({ ...draggedList, createdAt: newCreatedAt });
+  };
+  
+  const handleConfirmDelete = () => {
+    if (listToDelete) {
+      onDeleteList(listToDelete.id);
+      setListToDelete(null);
+    }
+  };
+
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
-        <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Smart Materials</h1>
+        <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Sticky Tickys</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-ink hover:bg-ink-light text-white rounded-full p-3 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-ink hover:bg-ink-light text-pencil rounded-full p-3 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Add new list"
           >
             <PlusIcon />
@@ -100,21 +214,29 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
             />
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
-              <button onClick={handleAddList} className="px-4 py-2 bg-ink hover:bg-ink-light text-white rounded-md transition-colors">Create</button>
+              <button onClick={handleAddList} className="px-4 py-2 bg-ink hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Create</button>
             </div>
           </div>
         </div>
       )}
 
       {sortedLists.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedLists.map(list => (
-            <ListItemTile 
-              key={list.id} 
+        <div 
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          onDrop={handleDropOnList}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          {sortedLists.map((list, index) => (
+            <ListItemTile
+              key={list.id}
               list={list}
-              onClick={() => onSelectList(list.id)}
-              onDragStart={(id) => { setIsDragging(true); setDraggedItemId(id); }}
-              onDragEnd={() => { setIsDragging(false); setDraggedItemId(null); }}
+              onClick={() => !draggedList && onSelectList(list.id)}
+              onDragStart={(e) => handleDragStart(e, list)}
+              onDragOver={(e) => handleDragOverList(e, index)}
+              onDragEnd={handleDragEnd}
+              isDragging={draggedList?.id === list.id}
+              showDropIndicatorBefore={dropIndicatorIndex === index}
+              showDropIndicatorAfter={index === sortedLists.length - 1 && dropIndicatorIndex === sortedLists.length}
             />
           ))}
         </div>
@@ -125,12 +247,21 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, onAddList, onDeleteLis
       )}
       
       <Bin 
-        isVisible={isDragging} 
+        isVisible={isDraggingForDelete} 
         onDrop={() => {
-          if (draggedItemId) {
-            onDeleteList(draggedItemId);
+          if (draggedList) {
+            setListToDelete(draggedList);
           }
         }}
+      />
+      
+      <ConfirmationModal
+        isOpen={!!listToDelete}
+        title="Delete List"
+        message={`Are you sure you want to permanently delete the "${listToDelete?.name}" list? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setListToDelete(null)}
+        confirmText="Delete"
       />
     </div>
   );

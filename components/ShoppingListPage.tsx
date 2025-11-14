@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingList, ShoppingListItem, ItemStatus } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
@@ -12,6 +10,7 @@ import TruckIcon from './icons/TruckIcon';
 import CheckSquareIcon from './icons/CheckSquareIcon';
 import ArrowUturnLeftIcon from './icons/ArrowUturnLeftIcon';
 import DragHandleIcon from './icons/DragHandleIcon';
+import PencilIcon from './icons/PencilIcon';
 
 const statusOrder: ItemStatus[] = ['listed', 'ordered', 'collected', 'returned'];
 
@@ -46,8 +45,21 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, onBack, onUpd
   const [copyButtonText, setCopyButtonText] = useState('Copy');
   const [draggedItem, setDraggedItem] = useState<ShoppingListItem | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   
   const stableOnUpdateList = useCallback(onUpdateList, [onUpdateList]);
+  
+  // Change body background color to feel like we're on the sticky note
+  useEffect(() => {
+    document.body.classList.remove('bg-paper');
+    document.body.classList.add('bg-sticky-note');
+
+    // Cleanup function to restore the original background color when the component unmounts.
+    return () => {
+      document.body.classList.add('bg-paper');
+      document.body.classList.remove('bg-sticky-note');
+    };
+  }, []); // Empty dependency array ensures this runs only on mount and unmount.
   
   useEffect(() => {
     // Only call update if the items have actually changed from the prop
@@ -143,23 +155,50 @@ const handleUpdateItemName = (id: string, newName: string) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', item.id); 
   };
-
+  
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
-    if (draggedItem) {
-      setDropIndicatorIndex(index);
+    if (!draggedItem || draggedItem.id === items[index].id) return;
+    
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    // Prevent flickering by creating a "dead zone" in the middle of the tile.
+    // The indicator only changes when the cursor is in the top or bottom 35% of the tile.
+    const threshold = height * 0.35;
+
+    let newDropIndex: number | null = dropIndicatorIndex; // Default to current value
+
+    if (y < threshold) {
+        newDropIndex = index;
+    } else if (y > height - threshold) {
+        newDropIndex = index + 1;
+    }
+    // If in the middle 30%, `newDropIndex` remains `dropIndicatorIndex`, so no state change occurs.
+
+    if (newDropIndex !== dropIndicatorIndex) {
+        setDropIndicatorIndex(newDropIndex);
     }
   };
+  
+  const handleDrop = () => {
+    if (draggedItem === null || dropIndicatorIndex === null) return;
+    
+    const dragFromIndex = items.findIndex(item => item.id === draggedItem.id);
+    if (dragFromIndex === -1) return;
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
-    e.preventDefault();
-    if (!draggedItem) return;
+    if (dropIndicatorIndex === dragFromIndex || dropIndicatorIndex === dragFromIndex + 1) {
+        return;
+    }
 
     const newItems = [...items];
-    const draggedItemIndex = newItems.findIndex(i => i.id === draggedItem.id);
+    const [movedItem] = newItems.splice(dragFromIndex, 1);
     
-    const [reorderedItem] = newItems.splice(draggedItemIndex, 1);
-    newItems.splice(dropIndex, 0, reorderedItem);
+    const finalDropIndex = dropIndicatorIndex > dragFromIndex ? dropIndicatorIndex - 1 : dropIndicatorIndex;
+
+    newItems.splice(finalDropIndex, 0, movedItem);
 
     setItems(newItems);
   };
@@ -169,7 +208,16 @@ const handleUpdateItemName = (id: string, newName: string) => {
     setDropIndicatorIndex(null);
   };
 
-  const completedItems = items.filter(item => item.status === 'collected').length;
+  const handleUpdateListName = (newName: string) => {
+    const trimmedName = newName.trim();
+    setIsEditingTitle(false);
+
+    if (!trimmedName || trimmedName === list.name) {
+      return;
+    }
+    
+    onUpdateList({ ...list, name: trimmedName });
+  };
 
   const printableList = useMemo(() => {
     const title = `Job: ${list.name}\n====================\n\n`;
@@ -222,8 +270,37 @@ const handleUpdateItemName = (id: string, newName: string) => {
           <ChevronLeftIcon className="w-8 h-8" />
         </button>
         <div className="flex-grow">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-1">{list.name}</h1>
-          <p className="text-pencil-light">{completedItems} of {items.length} materials completed</p>
+          {isEditingTitle ? (
+            <input
+              type="text"
+              defaultValue={list.name}
+              autoFocus
+              onFocus={(e) => e.target.select()}
+              className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold mb-1 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleUpdateListName((e.target as HTMLInputElement).value);
+                }
+                if (e.key === 'Escape') {
+                  setIsEditingTitle(false);
+                }
+              }}
+              onBlur={(e) => {
+                handleUpdateListName(e.target.value);
+              }}
+              aria-label="Edit list name"
+            />
+          ) : (
+            <h1
+              onClick={() => setIsEditingTitle(true)}
+              className="group text-4xl sm:text-5xl font-bold mb-1 cursor-pointer hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent"
+              title="Click to rename"
+            >
+              <span>{list.name}</span>
+              <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 group-hover:opacity-100 transition-opacity" />
+            </h1>
+          )}
+          <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'material' : 'materials'} listed</p>
         </div>
         <button 
           onClick={() => setIsPrintModalOpen(true)} 
@@ -246,7 +323,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
             />
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsPrintModalOpen(false)} className="px-4 py-2 bg-transparent hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Close</button>
-              <button onClick={handleCopyToClipboard} className="px-4 py-2 bg-ink hover:bg-ink-light text-white rounded-md transition-colors flex items-center gap-2 w-28 justify-center">
+              <button onClick={handleCopyToClipboard} className="px-4 py-2 bg-ink hover:bg-ink-light text-pencil font-bold rounded-md transition-colors flex items-center gap-2 w-28 justify-center">
                 <ClipboardIcon className="w-5 h-5" />
                 <span>{copyButtonText}</span>
               </button>
@@ -273,25 +350,28 @@ const handleUpdateItemName = (id: string, newName: string) => {
           className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
           aria-label="New material name"
         />
-        <button type="submit" className="bg-ink hover:bg-ink-light text-white rounded-md p-3 transition-colors flex justify-center items-center" aria-label="Add material">
+        <button type="submit" className="bg-ink hover:bg-ink-light text-pencil rounded-md p-3 transition-colors flex justify-center items-center" aria-label="Add material">
           <PlusIcon />
         </button>
       </form>
 
-      <div className="space-y-1 mb-8 min-h-[200px]">
+      <div 
+        className="space-y-1 mb-8 min-h-[200px]"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
         {items.length > 0 ? items.map((item, index) => {
           const isDone = item.status === 'collected' || item.status === 'returned';
           const isDragging = draggedItem?.id === item.id;
           return (
             <React.Fragment key={item.id}>
-              {dropIndicatorIndex === index && draggedItem?.id !== item.id && (
+              {dropIndicatorIndex === index && (
                   <div className="h-1.5 bg-ink rounded-full my-1 transition-all"></div>
               )}
               <div 
                 draggable={!isDone}
                 onDragStart={(e) => !isDone && handleDragStart(e, item)}
                 onDragOver={(e) => handleDragOver(e, index)}
-                onDrop={(e) => handleDrop(e, index)}
                 onDragEnd={handleDragEnd}
                 className={`flex items-center p-4 transition-all group ${ isDone ? 'opacity-60' : '' } ${ isDragging ? 'opacity-30' : '' } border-b-2 border-dashed border-pencil/10`}
               >
@@ -382,12 +462,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <p className="text-pencil-light text-xl">No materials yet. Add one above to start your list.</p>
             </div>
         )}
-        {draggedItem && (
-          <div onDragOver={(e) => handleDragOver(e, items.length)} onDrop={(e) => handleDrop(e, items.length)} className="h-10">
-            {dropIndicatorIndex === items.length && (
-              <div className="h-1.5 bg-ink rounded-full my-1 transition-all"></div>
-            )}
-          </div>
+        {dropIndicatorIndex === items.length && (
+          <div className="h-1.5 bg-ink rounded-full my-1 transition-all"></div>
         )}
       </div>
     </div>

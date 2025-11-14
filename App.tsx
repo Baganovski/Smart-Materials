@@ -111,6 +111,7 @@ const App: React.FC = () => {
           onDeleteList={deleteList}
           onSelectList={setSelectedListId}
           onSignOut={handleSignOut}
+          onUpdateList={updateList}
           user={user}
         />
       )}

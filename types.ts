@@ -1,15 +1,19 @@
 // Fix: Define the firebase namespace and nested Timestamp type for TypeScript.
 // This allows using firebase.firestore.Timestamp as a type.
-declare namespace firebase {
-  namespace firestore {
-    interface Timestamp {
-      toDate(): Date;
+declare global {
+  namespace firebase {
+    namespace firestore {
+      interface Timestamp {
+        toDate(): Date;
+        toMillis(): number;
+      }
+      // A variable with the same name as the interface is declared to hold static members.
+      var Timestamp: {
+        fromMillis(milliseconds: number): Timestamp;
+      };
     }
   }
 }
-
-// This tells TypeScript that a 'firebase' object exists in the global scope
-declare const firebase: any;
 
 export type ItemStatus = 'listed' | 'ordered' | 'collected' | 'returned';
 

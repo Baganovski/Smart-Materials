@@ -45,51 +45,56 @@ const LoginPage: React.FC = () => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Smart Materials</h1>
+            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Sticky Tickys</h1>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
                 {isSignUp ? 'Create an account to save your lists.' : 'Sign in to access your lists.'}
             </p>
 
-            <div className="w-full max-w-sm">
-                <form onSubmit={handleSubmit} className="bg-paper p-8 rounded-lg border-2 border-pencil shadow-sketchy">
-                    <h2 className="text-3xl font-bold mb-6 text-pencil">{isSignUp ? 'Sign Up' : 'Sign In'}</h2>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Email Address"
-                        required
-                        className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-                        aria-label="Email Address"
-                    />
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Password"
-                        required
-                        className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-6 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-                        aria-label="Password"
-                    />
-                    
-                    {error && <p className="text-danger text-sm mb-4">{error}</p>}
-                    
+            <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2">
+                {/* Adhesive strip */}
+                <div className="absolute top-0 left-0 right-0 h-10 bg-black/5 border-b border-black/10" />
+
+                <div className="relative pt-12 px-8 pb-8">
+                    <form onSubmit={handleSubmit}>
+                        <h2 className="text-3xl font-bold mb-6 text-pencil">{isSignUp ? 'Sign Up' : 'Sign In'}</h2>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Email Address"
+                            required
+                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                            aria-label="Email Address"
+                        />
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Password"
+                            required
+                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-6 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                            aria-label="Password"
+                        />
+                        
+                        {error && <p className="text-danger text-sm mb-4">{error}</p>}
+                        
+                        <button
+                            type="submit"
+                            className="w-full bg-ink hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy hover:shadow-sketchy-hover transition-all duration-200"
+                        >
+                            {isSignUp ? 'Create Account' : 'Sign In'}
+                        </button>
+                    </form>
                     <button
-                        type="submit"
-                        className="w-full bg-ink hover:bg-ink-light text-white text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy hover:shadow-sketchy-hover transition-all duration-200"
+                        onClick={() => {
+                            setIsSignUp(!isSignUp);
+                            setError(null);
+                        }}
+                        className="mt-6 text-pencil-light hover:text-ink transition-colors"
                     >
-                        {isSignUp ? 'Create Account' : 'Sign In'}
+                        {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
                     </button>
-                </form>
-                <button
-                    onClick={() => {
-                        setIsSignUp(!isSignUp);
-                        setError(null);
-                    }}
-                    className="mt-6 text-pencil-light hover:text-ink transition-colors"
-                >
-                    {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-                </button>
+                </div>
             </div>
         </div>
     );
