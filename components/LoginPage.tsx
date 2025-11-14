@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
 
             <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2">
                 {/* Adhesive strip */}
-                <div className="absolute top-0 left-0 right-0 h-10 bg-sticky-note-top border-b border-pencil/10" />
+                <div className="absolute top-0 left-0 right-0 h-10 bg-sticky-note-top" />
 
                 <div className="relative pt-12 px-8 pb-8">
                     <form onSubmit={handleSubmit}>
