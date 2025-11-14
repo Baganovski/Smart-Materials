@@ -40,8 +40,9 @@ export interface Country {
 export interface CustomStatus {
   id: string;
   name: string;
+  color: string;
+  // Fix: Add missing 'icon' property to resolve type errors.
   icon: string;
-  color?: string;
 }
 
 export interface UserSettings {

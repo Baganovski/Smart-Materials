@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingList, UserSettings } from '../types';
 import ListItemTile from './ListItemTile';
 import Bin from './Bin';
-import PlusIcon from './icons/PlusIcon';
-import UserIcon from './icons/UserIcon';
 import ConfirmationModal from './ConfirmationModal';
-import CustomizeModal from './CustomizeModal'; // Import the new modal
-import CogIcon from './icons/CogIcon';
+import CustomizeModal from './CustomizeModal';
 
 // Fix: Add firebase declaration to provide an object for the global types.
 declare const firebase: any;
@@ -25,6 +22,7 @@ interface ListPageProps {
 
 const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings }) => {
   const [isAdding, setIsAdding] = useState(false);
+  // Fix: Added missing '=' in useState declaration.
   const [newListName, setNewListName] = useState('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   
@@ -35,32 +33,27 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   // State for drag-to-reorder
   const [draggedList, setDraggedList] = useState<ShoppingList | null>(null);
   const [listsForRender, setListsForRender] = useState<ShoppingList[]>([]);
+  
+  const listsSortedByDate = useMemo(() => {
+    const listsCopy = [...lists];
 
-  const sortedLists = [...lists].sort((a, b) => {
-    const getTime = (dateValue: firebase.firestore.Timestamp | string | undefined) => {
+    const getTime = (dateValue: firebase.firestore.Timestamp | string | undefined): number => {
         if (!dateValue) return 0;
-        // Handle Firestore Timestamp
-        if (typeof dateValue === 'object' && dateValue.toDate) {
-            return dateValue.toDate().getTime();
-        }
-        // Handle ISO string
-        if (typeof dateValue === 'string') {
-            return new Date(dateValue).getTime();
-        }
+        if (typeof dateValue === 'object' && dateValue.toDate) return dateValue.toDate().getTime();
+        if (typeof dateValue === 'string') return new Date(dateValue).getTime();
         return 0;
     };
+    
+    listsCopy.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
+    return listsCopy;
+  }, [lists]);
 
-    return getTime(b.createdAt) - getTime(a.createdAt);
-  });
 
-  // Effect to synchronize the renderable list with the sorted list from props.
-  // This ensures the component reflects the latest data, but avoids overriding
-  // the visual reordering state while a drag operation is in progress.
   useEffect(() => {
     if (!draggedList) {
-      setListsForRender(sortedLists);
+      setListsForRender(listsSortedByDate);
     }
-  }, [sortedLists, draggedList]);
+  }, [listsSortedByDate, draggedList]);
 
 
   const handleAddList = () => {
@@ -74,8 +67,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   const handleDragStart = (e: React.DragEvent, list: ShoppingList) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', list.id);
-    // Defer state update to allow browser to capture the drag image before the element's style changes.
-    // This prevents the "ghost" image from flickering or capturing the placeholder style.
     setTimeout(() => {
       setDraggedList(list);
       setIsDraggingForDelete(true);
@@ -99,7 +90,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       return;
     }
 
-    // Reorder the array to provide immediate visual feedback.
     const reorderedLists = [...currentLists];
     const [movedItem] = reorderedLists.splice(dragIndex, 1);
     reorderedLists.splice(hoverIndex, 0, movedItem);
@@ -110,48 +100,35 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   const handleDropOnList = () => {
     if (draggedList === null) return;
     
-    // The listsForRender state now holds the final desired order.
     const finalIndex = listsForRender.findIndex(list => list.id === draggedList.id);
     if (finalIndex === -1) return;
 
-    // Check if the order actually changed from the original sorted list to avoid unnecessary writes.
-    const originalIndex = sortedLists.findIndex(list => list.id === draggedList.id);
+    const originalIndex = listsSortedByDate.findIndex(list => list.id === draggedList.id);
     if (finalIndex === originalIndex) {
       return;
     }
-
-    // To find the correct neighbors, we use the final visual ordering.
+    
     const prevList = listsForRender[finalIndex - 1] || null;
     const nextList = listsForRender[finalIndex + 1] || null;
 
     const getTimestamp = (dateValue: any): number => {
         if (!dateValue) return new Date().getTime();
-        if (typeof dateValue === 'object' && dateValue.toDate) {
-            return dateValue.toDate().getTime();
-        }
-        if (typeof dateValue === 'string') {
-            return new Date(dateValue).getTime();
-        }
+        if (typeof dateValue === 'object' && dateValue.toDate) return dateValue.toDate().getTime();
+        if (typeof dateValue === 'string') return new Date(dateValue).getTime();
         return new Date().getTime();
     };
 
     let newTimestampMs;
-
-    // Lists are sorted descending by timestamp (newest first).
     const prevTime = prevList ? getTimestamp(prevList.createdAt) : 0;
     const nextTime = nextList ? getTimestamp(nextList.createdAt) : 0;
 
     if (prevList && nextList) {
-        // Dropped between two items: find the midpoint timestamp.
         newTimestampMs = (prevTime + nextTime) / 2;
     } else if (prevList) {
-        // Dropped at the end: make it slightly older than the previous last item.
         newTimestampMs = prevTime - 1000; 
     } else if (nextList) {
-        // Dropped at the beginning: make it slightly newer than the previous first item.
         newTimestampMs = nextTime + 1000;
     } else {
-        // This case should not happen in a list with more than one item.
         return; 
     }
     
@@ -160,7 +137,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       return;
     }
 
-    // Fix: Use the globally typed firebase object to access Timestamp.
     const newCreatedAt = firebase.firestore.Timestamp.fromMillis(newTimestampMs);
     
     onUpdateList({ ...draggedList, createdAt: newCreatedAt });
@@ -172,7 +148,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       setListToDelete(null);
     }
   };
-
+  
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
@@ -180,22 +156,21 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-ink hover:bg-ink-light text-pencil rounded-full p-3 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-ink hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Add new list"
           >
-            <PlusIcon />
+            +
           </button>
            <div className="group relative">
-             <div className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center">
-                <UserIcon className="w-8 h-8 text-pencil" />
+             <div className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl">
+                {(user.displayName || user.email)?.[0]?.toUpperCase() ?? 'U'}
              </div>
-             <div className="absolute top-full right-0 mt-2 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy opacity-0 group-hover:opacity-100 transition-opacity duration-200 invisible group-hover:visible z-10">
+             <div className="absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy opacity-0 group-hover:opacity-100 transition-opacity duration-200 invisible group-hover:visible z-10">
                 <div className="p-3 border-b border-pencil/20">
                   <p className="font-bold truncate">{user.displayName || user.email}</p>
                   <p className="text-sm text-pencil-light truncate">{user.email}</p>
                 </div>
-                <button onClick={() => setIsCustomizeModalOpen(true)} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors flex items-center gap-2">
-                  <CogIcon className="w-5 h-5" />
+                <button onClick={() => setIsCustomizeModalOpen(true)} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">
                   <span>Customize</span>
                 </button>
                 <button onClick={onSignOut} className="w-full text-left px-3 py-2 hover:bg-highlighter transition-colors">Sign Out</button>

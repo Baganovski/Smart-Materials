@@ -2,7 +2,7 @@ import { CustomStatus } from "../types";
 
 export const getDefaultStatuses = (): CustomStatus[] => [
   { id: 'listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
-  { id: 'ordered', name: 'Ordered', icon: 'TruckIcon', color: '#3b82f6' },
+  { id: 'ordered', name: 'Ordered', icon: 'ShoppingCartIcon', color: '#3b82f6' },
   { id: 'collected', name: 'Collected', icon: 'CheckSquareIcon', color: '#22c55e' },
   { id: 'returned', name: 'Returned', icon: 'ArrowUturnLeftIcon', color: '#ef4444' },
 ];
@@ -27,19 +27,15 @@ export const ALL_ICONS: string[] = [
     'CheckSquareIcon',
     'CheckCircleIcon',
     'XCircleIcon',
-    'TruckIcon',
     'ShoppingCartIcon',
     'PackageIcon',
     'BoxIcon',
     'ArrowUturnLeftIcon',
-    'ClipboardListIcon',
     'StarIcon',
-    'FireIcon',
     'LightBulbIcon',
     'TagIcon',
     'HomeIcon',
     'CalendarDaysIcon',
     'ClockIcon',
     'PencilIcon',
-    'CogIcon'
 ];

@@ -4,7 +4,6 @@ import ListPage from './components/ListPage';
 import ShoppingListPage from './components/ShoppingListPage';
 import LoginPage from './components/LoginPage';
 import { auth, db } from './firebase';
-import SpinnerIcon from './components/icons/SpinnerIcon';
 import { getDefaultStatuses } from './utils/defaults';
 
 // This tells TypeScript that a 'firebase' object exists in the global scope
@@ -122,7 +121,7 @@ const App: React.FC = () => {
   if (loading || (user && !userSettings)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <SpinnerIcon className="w-12 h-12" />
+        <p className="text-2xl text-pencil-light">Loading...</p>
       </div>
     );
   }

@@ -8,6 +8,9 @@ import ClipboardIcon from './icons/ClipboardIcon';
 import DragHandleIcon from './icons/DragHandleIcon';
 import PencilIcon from './icons/PencilIcon';
 import IconRenderer from './icons/IconRenderer';
+import ArrowsUpDownIcon from './icons/ArrowsUpDownIcon';
+
+type SortOption = 'custom' | 'a-z' | 'z-a' | 'status';
 
 interface ShoppingListPageProps {
   list: ShoppingList;
@@ -27,7 +30,8 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [draggedItem, setDraggedItem] = useState<ShoppingListItem | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  
+  const [sortBy, setSortBy] = useState<SortOption>('custom');
+
   const stableOnUpdateList = useCallback(onUpdateList, [onUpdateList]);
   
   const statusMap = useMemo(() => 
@@ -55,6 +59,35 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   useEffect(() => {
     setItems(list.items || []);
   }, [list.items]);
+  
+  const sortedItems = useMemo(() => {
+    // Return a new sorted array, but don't modify the original `items` state
+    // so the custom order is preserved.
+    const itemsCopy = [...items];
+    switch (sortBy) {
+        case 'a-z':
+            itemsCopy.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+            break;
+        case 'z-a':
+            itemsCopy.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
+            break;
+        case 'status':
+            const statusOrder = new Map(userSettings.statuses.map((s, i) => [s.id, i]));
+            itemsCopy.sort((a, b) => {
+                const aIndex = statusOrder.get(a.status) ?? Infinity;
+                const bIndex = statusOrder.get(b.status) ?? Infinity;
+                if (aIndex === bIndex) {
+                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+                }
+                return aIndex - bIndex;
+            });
+            break;
+        case 'custom':
+        default:
+            return items; // Return original order from state
+    }
+    return itemsCopy;
+  }, [items, sortBy, userSettings.statuses]);
 
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -141,7 +174,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
   
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.preventDefault();
-    if (!draggedItem || draggedItem.id === items[index].id) return;
+    if (!draggedItem || draggedItem.id === sortedItems[index].id) return;
     
     const target = e.currentTarget;
     const rect = target.getBoundingClientRect();
@@ -206,7 +239,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       return `List: ${list.name}\n====================\n\nNo items in this list.`;
     }
 
-    const groupedItems = items.reduce((acc, item) => {
+    const groupedItems = sortedItems.reduce((acc, item) => {
       const statusId = item.status;
       if (!acc[statusId]) {
         acc[statusId] = [];
@@ -230,7 +263,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     }).filter(Boolean).join('\n\n');
     
     return `${title}${listBody}`;
-  }, [items, list.name, userSettings.statuses]);
+  }, [sortedItems, list.name, userSettings.statuses]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(printableList).then(() => {
@@ -242,53 +275,81 @@ const handleUpdateItemName = (id: string, newName: string) => {
         setTimeout(() => setCopyButtonText('Copy'), 2000);
     });
   };
+  
+  const SortButton: React.FC<{ value: SortOption; label: string; }> = ({ value, label }) => (
+    <button
+      onClick={() => setSortBy(value)}
+      className={`w-full text-left px-3 py-2 transition-colors ${sortBy === value ? 'bg-ink/50 font-bold' : 'hover:bg-highlighter'}`}
+    >
+      <span>{label}</span>
+    </button>
+  );
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
-      <header className="flex items-center mb-8">
-        <button onClick={onBack} className="mr-4 p-2 rounded-full hover:bg-highlighter transition-colors" aria-label="Go back">
-          <ChevronLeftIcon className="w-8 h-8" />
-        </button>
-        <div className="flex-grow">
-          {isEditingTitle ? (
-            <input
-              type="text"
-              defaultValue={list.name}
-              autoFocus
-              onFocus={(e) => e.target.select()}
-              className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold mb-1 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleUpdateListName((e.target as HTMLInputElement).value);
-                }
-                if (e.key === 'Escape') {
-                  setIsEditingTitle(false);
-                }
-              }}
-              onBlur={(e) => {
-                handleUpdateListName(e.target.value);
-              }}
-              aria-label="Edit list name"
-            />
-          ) : (
-            <h1
-              onClick={() => setIsEditingTitle(true)}
-              className="group text-4xl sm:text-5xl font-bold mb-1 cursor-pointer hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent"
-              title="Click to rename"
-            >
-              <span>{list.name}</span>
-              <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 group-hover:opacity-100 transition-opacity" />
-            </h1>
-          )}
-          <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'item' : 'items'} listed</p>
+      <header className="flex items-center justify-between mb-8 gap-4">
+        <div className="flex items-center flex-grow min-w-0">
+          <button onClick={onBack} className="mr-4 p-2 rounded-full hover:bg-highlighter transition-colors" aria-label="Go back">
+            <ChevronLeftIcon className="w-8 h-8" />
+          </button>
+          <div className="flex-grow min-w-0">
+            {isEditingTitle ? (
+              <input
+                type="text"
+                defaultValue={list.name}
+                autoFocus
+                onFocus={(e) => e.target.select()}
+                className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold mb-1 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleUpdateListName((e.target as HTMLInputElement).value);
+                  }
+                  if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                onBlur={(e) => {
+                  handleUpdateListName(e.target.value);
+                }}
+                aria-label="Edit list name"
+              />
+            ) : (
+              <h1
+                onClick={() => setIsEditingTitle(true)}
+                className="group text-4xl sm:text-5xl font-bold mb-1 cursor-pointer hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent truncate"
+                title="Click to rename"
+              >
+                <span className="truncate">{list.name}</span>
+                <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              </h1>
+            )}
+            <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'item' : 'items'} listed</p>
+          </div>
         </div>
-        <button 
-          onClick={() => setIsPrintModalOpen(true)} 
-          className="p-3 rounded-full hover:bg-highlighter transition-colors" 
-          aria-label="Open printable list"
-        >
-          <PrintIcon className="w-7 h-7" />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="group relative">
+              <button
+                className="bg-transparent hover:bg-highlighter border-2 border-pencil rounded-full p-3 transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                aria-label="Sort items"
+              >
+                <ArrowsUpDownIcon className="w-6 h-6"/>
+              </button>
+              <div className="absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy opacity-0 group-hover:opacity-100 transition-opacity duration-200 invisible group-hover:visible z-10 overflow-hidden">
+                  <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
+                  <SortButton value="custom" label="Custom Order" />
+                  <SortButton value="a-z" label="A-Z" />
+                  <SortButton value="z-a" label="Z-A" />
+                  <SortButton value="status" label="Status" />
+              </div>
+            </div>
+          <button 
+            onClick={() => setIsPrintModalOpen(true)} 
+            className="p-3 rounded-full hover:bg-highlighter transition-colors" 
+            aria-label="Open printable list"
+          >
+            <PrintIcon className="w-7 h-7" />
+          </button>
+        </div>
       </header>
       
       {isPrintModalOpen && (
@@ -337,12 +398,12 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
       <div 
         className="space-y-1 mb-8 min-h-[200px]"
-        onDrop={handleDrop}
+        onDrop={sortBy === 'custom' ? handleDrop : undefined}
         onDragOver={(e) => e.preventDefault()}
       >
-        {items.length > 0 ? items.map((item, index) => {
+        {sortedItems.length > 0 ? sortedItems.map((item, index) => {
           const currentStatus = statusMap.get(item.status);
-          const isDraggable = true; // For now, all items are draggable
+          const isDraggable = sortBy === 'custom';
           const isDragging = draggedItem?.id === item.id;
           return (
             <React.Fragment key={item.id}>
@@ -352,7 +413,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
               <div 
                 draggable={isDraggable}
                 onDragStart={(e) => isDraggable && handleDragStart(e, item)}
-                onDragOver={(e) => handleDragOver(e, index)}
+                onDragOver={(e) => isDraggable && handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
                 className={`flex items-center p-4 transition-all group ${ isDragging ? 'opacity-30' : '' } border-b-2 border-dashed border-pencil/10`}
               >

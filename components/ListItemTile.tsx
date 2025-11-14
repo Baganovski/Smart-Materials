@@ -12,7 +12,7 @@ interface ListItemTileProps {
 
 const ListItemTile: React.FC<ListItemTileProps> = ({ 
   list, 
-  isDragging, 
+  isDragging,
   onClick, 
   onDragStart, 
   onDragOver, 
@@ -31,7 +31,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
   return (
     <div
       onClick={onClick}
-      draggable
+      draggable={true}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
