@@ -30,6 +30,7 @@ export interface ShoppingList {
   name: string;
   items: ShoppingListItem[];
   createdAt: firebase.firestore.Timestamp | string;
+  statusGroupId: string; // Link to a specific status group
 }
 
 export interface Country {
@@ -45,6 +46,12 @@ export interface CustomStatus {
   icon: string;
 }
 
-export interface UserSettings {
+export interface StatusGroup {
+  id: string;
+  name: string;
   statuses: CustomStatus[];
+}
+
+export interface UserSettings {
+  statusGroups: StatusGroup[];
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ShoppingList, ShoppingListItem, UserSettings, CustomStatus } from '../types';
+import { ShoppingList, ShoppingListItem, UserSettings, StatusGroup } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
 import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
@@ -9,6 +9,9 @@ import DragHandleIcon from './icons/DragHandleIcon';
 import PencilIcon from './icons/PencilIcon';
 import IconRenderer from './icons/IconRenderer';
 import ArrowsUpDownIcon from './icons/ArrowsUpDownIcon';
+import ConfirmationModal from './ConfirmationModal';
+import ChevronDownIcon from './icons/ChevronDownIcon';
+
 
 type SortOption = 'custom' | 'a-z' | 'z-a' | 'status';
 
@@ -32,13 +35,19 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('custom');
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
+  const [groupToChange, setGroupToChange] = useState<StatusGroup | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
 
-  const stableOnUpdateList = useCallback(onUpdateList, [onUpdateList]);
+  const activeGroup = useMemo(() => 
+    userSettings.statusGroups.find(g => g.id === list.statusGroupId) || userSettings.statusGroups[0] || { id: 'fallback', name: 'Default', statuses: [] },
+    [list.statusGroupId, userSettings.statusGroups]
+  );
   
   const statusMap = useMemo(() => 
-    new Map(userSettings.statuses.map(s => [s.id, s])), 
-    [userSettings.statuses]
+    new Map(activeGroup.statuses.map(s => [s.id, s])), 
+    [activeGroup.statuses]
   );
   
   // Change body background color to feel like we're on the sticky note
@@ -53,12 +62,6 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   }, []);
   
   useEffect(() => {
-    if (JSON.stringify(items) !== JSON.stringify(list.items || [])) {
-      stableOnUpdateList({ ...list, items });
-    }
-  }, [items, list, stableOnUpdateList]);
-
-  useEffect(() => {
     setItems(list.items || []);
   }, [list.items]);
   
@@ -66,6 +69,9 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     const handleClickOutside = (event: MouseEvent) => {
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
         setIsSortMenuOpen(false);
+      }
+      if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
+        setIsGroupMenuOpen(false);
       }
     };
 
@@ -87,7 +93,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             itemsCopy.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
             break;
         case 'status':
-            const statusOrder = new Map(userSettings.statuses.map((s, i) => [s.id, i]));
+            const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
             itemsCopy.sort((a, b) => {
                 const aIndex = statusOrder.get(a.status) ?? Infinity;
                 const bIndex = statusOrder.get(b.status) ?? Infinity;
@@ -102,7 +108,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             return items; // Return original order from state
     }
     return itemsCopy;
-  }, [items, sortBy, userSettings.statuses]);
+  }, [items, sortBy, activeGroup.statuses]);
 
 
   const handleAddItem = (e: React.FormEvent) => {
@@ -115,29 +121,28 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
         id: Date.now().toString(),
         name,
         quantity,
-        status: userSettings.statuses[0]?.id || 'listed', // Default to first status
+        status: activeGroup.statuses[0]?.id || 'listed', // Default to first status
     };
 
-    setItems(prevItems => [newItem, ...prevItems]);
+    onUpdateList({ ...list, items: [newItem, ...items] });
     setNewItemName('');
     setNewItemQty('1');
   };
 
   const handleCycleStatus = (id: string) => {
-    setItems(prevItems =>
-      prevItems.map(item => {
-        if (item.id === id) {
-          const currentIndex = userSettings.statuses.findIndex(s => s.id === item.status);
-          const nextIndex = (currentIndex + 1) % userSettings.statuses.length;
-          return { ...item, status: userSettings.statuses[nextIndex].id };
-        }
-        return item;
-      })
-    );
+    const newItems = items.map(item => {
+      if (item.id === id) {
+        const currentIndex = activeGroup.statuses.findIndex(s => s.id === item.status);
+        const nextIndex = (currentIndex + 1) % activeGroup.statuses.length;
+        return { ...item, status: activeGroup.statuses[nextIndex].id };
+      }
+      return item;
+    });
+    onUpdateList({ ...list, items: newItems });
   };
 
   const handleDeleteItem = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id));
+    onUpdateList({ ...list, items: items.filter(item => item.id !== id) });
   };
   
   const handleUpdateItemQuantity = (id: string, newQuantityStr: string) => {
@@ -154,11 +159,10 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       return;
     }
 
-    setItems(prevItems =>
-        prevItems.map(item =>
-            item.id === id ? { ...item, quantity: newQuantity } : item
-        )
+    const newItems = items.map(item =>
+        item.id === id ? { ...item, quantity: newQuantity } : item
     );
+    onUpdateList({ ...list, items: newItems });
     setEditingQuantityItemId(null);
 };
 
@@ -171,14 +175,13 @@ const handleUpdateItemName = (id: string, newName: string) => {
         return;
     }
     
-    setItems(prevItems =>
-      prevItems.map(item =>
+    const newItems = items.map(item =>
         item.id === id ? { 
             ...item, 
             name: trimmedName, 
         } : item
-      )
     );
+    onUpdateList({ ...list, items: newItems });
 };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: ShoppingListItem) => {
@@ -228,7 +231,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
     newItems.splice(finalDropIndex, 0, movedItem);
 
-    setItems(newItems);
+    onUpdateList({ ...list, items: newItems });
   };
 
   const handleDragEnd = () => {
@@ -247,6 +250,23 @@ const handleUpdateItemName = (id: string, newName: string) => {
     onUpdateList({ ...list, name: trimmedName });
   };
 
+  const confirmGroupChange = () => {
+    if (!groupToChange) return;
+
+    const newGroupStatusIds = new Set(groupToChange.statuses.map(s => s.id));
+    const firstStatusOfNewGroup = groupToChange.statuses[0]?.id;
+
+    const updatedItems = items.map(item => {
+        if (!newGroupStatusIds.has(item.status)) {
+            return { ...item, status: firstStatusOfNewGroup || '' };
+        }
+        return item;
+    });
+
+    onUpdateList({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
+    setGroupToChange(null);
+  };
+
   const printableList = useMemo(() => {
     const title = `List: ${list.name}\n====================\n\n`;
 
@@ -263,7 +283,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       return acc;
     }, {} as Record<string, ShoppingListItem[]>);
 
-    const listBody = userSettings.statuses.map(status => {
+    const listBody = activeGroup.statuses.map(status => {
       const itemsForStatus = groupedItems[status.id];
       if (!itemsForStatus || itemsForStatus.length === 0) {
         return '';
@@ -278,7 +298,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     }).filter(Boolean).join('\n\n');
     
     return `${title}${listBody}`;
-  }, [sortedItems, list.name, userSettings.statuses]);
+  }, [sortedItems, list.name, activeGroup.statuses]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(printableList).then(() => {
@@ -305,7 +325,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
-      <header className="flex items-center justify-between mb-8 gap-4">
+      <header className="flex items-center justify-between mb-4 gap-4">
         <div className="flex items-center flex-grow min-w-0">
           <button onClick={onBack} className="mr-4 p-2 rounded-full md:hover:bg-highlighter transition-colors" aria-label="Go back">
             <ChevronLeftIcon className="w-8 h-8" />
@@ -341,7 +361,32 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
               </h1>
             )}
-            <p className="text-pencil-light px-1">{items.length} {items.length === 1 ? 'item' : 'items'} listed</p>
+            <div className="text-pencil-light px-1 flex flex-col items-start sm:flex-row sm:items-center gap-1 sm:gap-4">
+                <span>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
+                <div className="relative" ref={groupMenuRef}>
+                    <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-1 text-pencil-light md:hover:text-ink transition-colors" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
+                        <span>Workflow: <strong>{activeGroup.name}</strong></span>
+                        <ChevronDownIcon className="w-4 h-4" />
+                    </button>
+                    <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        {userSettings.statusGroups.map(group => (
+                            <button
+                                key={group.id}
+                                onClick={() => {
+                                    if (group.id !== activeGroup.id) {
+                                        setGroupToChange(group);
+                                    }
+                                    setIsGroupMenuOpen(false);
+                                }}
+                                disabled={group.id === activeGroup.id}
+                                className="w-full text-left px-3 py-2 transition-colors disabled:bg-ink/50 disabled:font-bold md:hover:bg-highlighter"
+                            >
+                                {group.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -393,6 +438,16 @@ const handleUpdateItemName = (id: string, newName: string) => {
           </div>
         </div>
       )}
+      
+      <ConfirmationModal
+        isOpen={!!groupToChange}
+        title="Change Workflow"
+        message={`Are you sure you want to change this list's workflow to "${groupToChange?.name}"? The status of items that don't match the new workflow will be reset.`}
+        onConfirm={confirmGroupChange}
+        onCancel={() => setGroupToChange(null)}
+        confirmText="Change"
+      />
+
 
       <form onSubmit={handleAddItem} className="mb-6 grid grid-cols-[70px_1fr_auto] gap-3 items-center">
         <input

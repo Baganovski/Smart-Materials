@@ -1,8 +1,24 @@
-import { CustomStatus } from "../types";
+import { StatusGroup } from "../types";
 
-export const getDefaultStatuses = (): CustomStatus[] => [
-  { id: 'listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
-  { id: 'ticked', name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
+export const getDefaultStatusGroups = (): StatusGroup[] => [
+  {
+    id: 'default',
+    name: 'Tick List',
+    statuses: [
+      { id: 'listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
+      { id: 'ticked', name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
+    ]
+  },
+  {
+    id: 'materials-list',
+    name: 'Materials List',
+    statuses: [
+        { id: 'mat-listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
+        { id: 'ordered', name: 'Ordered', icon: 'ShoppingCartIcon', color: '#3b82f6' },
+        { id: 'received', name: 'Received', icon: 'CheckSquareIcon', color: '#22c55e' },
+        { id: 'returned', name: 'Returned', icon: 'ArrowUturnLeftIcon', color: '#ef4444' },
+    ]
+  }
 ];
 
 export const PRESET_COLORS: string[] = [

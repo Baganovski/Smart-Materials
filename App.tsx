@@ -6,7 +6,7 @@ import LoginPage from './components/LoginPage';
 import VerifyEmailPage from './components/VerifyEmailPage';
 // Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
 import { auth, db, firebase } from './firebase';
-import { getDefaultStatuses } from './utils/defaults';
+import { getDefaultStatusGroups } from './utils/defaults';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
@@ -53,10 +53,24 @@ const App: React.FC = () => {
       const settingsDocRef = db.collection('settings').doc(user.uid);
       const unsubscribeSettings = settingsDocRef.onSnapshot(async (doc) => {
         if (doc.exists) {
-          setUserSettings(doc.data() as UserSettings);
+          const data = doc.data();
+          // Migration for old users who have `statuses` instead of `statusGroups`
+          if (data && data.statuses && !data.statusGroups) {
+            const migratedSettings: UserSettings = {
+              statusGroups: [{
+                id: 'default',
+                name: 'My Workflow',
+                statuses: data.statuses,
+              }]
+            };
+            await settingsDocRef.set(migratedSettings);
+            setUserSettings(migratedSettings);
+          } else {
+            setUserSettings(data as UserSettings);
+          }
         } else {
           // No settings found, create defaults
-          const defaultSettings = { statuses: getDefaultStatuses() };
+          const defaultSettings: UserSettings = { statusGroups: getDefaultStatusGroups() };
           await settingsDocRef.set(defaultSettings);
           setUserSettings(defaultSettings);
         }
@@ -74,6 +88,7 @@ const App: React.FC = () => {
             id: doc.id,
             ...data,
             items: data.items || [], // Ensure items always exists
+            statusGroupId: data.statusGroupId || 'default', // Ensure statusGroupId exists
           } as ShoppingList;
         });
         setLists(listsData);
@@ -91,13 +106,16 @@ const App: React.FC = () => {
   }, [user, needsVerification]);
 
   const addList = async (name: string) => {
-    if (!user) return;
+    if (!user || !userSettings) return;
     try {
+      // Assign the first status group by default
+      const defaultStatusGroupId = userSettings.statusGroups[0]?.id || 'default';
       await db.collection('lists').add({
         uid: user.uid,
         name,
         items: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        statusGroupId: defaultStatusGroupId,
       });
     } catch (error) {
       console.error("Error adding document: ", error);
