@@ -8,6 +8,7 @@ import IconRenderer from './icons/IconRenderer';
 import IconPicker from './IconPicker';
 import ConfirmationModal from './ConfirmationModal';
 import ArrowPathIcon from './icons/ArrowPathIcon';
+import ColorPicker from './ColorPicker'; // Import the new color picker
 
 interface CustomizeModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
   const [statuses, setStatuses] = useState<CustomStatus[]>([]);
   const [draggedStatus, setDraggedStatus] = useState<CustomStatus | null>(null);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState<string | null>(null); // Holds the ID of the status being edited
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState<string | null>(null); // Holds the ID for color editing
   const [statusToDelete, setStatusToDelete] = useState<CustomStatus | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
@@ -47,6 +49,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
       id: Date.now().toString(),
       name: 'New Status',
       icon: 'SquareIcon',
+      color: '#333333', // Default color
     };
     setStatuses([...statuses, newStatus]);
   };
@@ -105,6 +108,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     setIsIconPickerOpen(null);
   };
 
+  const handleSelectColor = (color: string) => {
+    if (isColorPickerOpen) {
+      handleUpdateStatus(isColorPickerOpen, { color: color });
+    }
+    setIsColorPickerOpen(null);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
       <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-md relative">
@@ -112,7 +122,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
         <p className="text-pencil-light mb-6">Define the workflow for your list items.</p>
 
         <div className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
-            {statuses.map((status, index) => {
+            {statuses.map((status) => {
                 const isDragging = draggedStatus?.id === status.id;
                 return (
                     <div
@@ -131,8 +141,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                             className="p-2 rounded-md hover:bg-ink/50 transition-colors"
                             aria-label={`Change icon for ${status.name}`}
                         >
-                           <IconRenderer iconName={status.icon} className="w-6 h-6" />
+                           <IconRenderer iconName={status.icon} className="w-6 h-6" style={{ color: status.color || '#333333' }} />
                         </button>
+                        <button
+                          onClick={() => setIsColorPickerOpen(status.id)}
+                          className="w-6 h-6 rounded-full border-2 border-pencil/20 transition-transform transform hover:scale-110"
+                          style={{ backgroundColor: status.color || '#cccccc' }}
+                          aria-label={`Change color for ${status.name}`}
+                        />
                         <input
                             type="text"
                             value={status.name}
@@ -175,10 +191,16 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                 onClose={() => setIsIconPickerOpen(null)}
             />
         )}
+        {isColorPickerOpen && (
+            <ColorPicker
+                onSelect={handleSelectColor}
+                onClose={() => setIsColorPickerOpen(null)}
+            />
+        )}
         <ConfirmationModal
             isOpen={!!statusToDelete}
             title="Delete Status"
-            message={`Are you sure you want to delete the "${statusToDelete?.name}" status? Any items with this status will be reassigned.`}
+            message={`Are you sure you want to delete the "${statusToDelete?.name}" status? This action is permanent.`}
             onConfirm={confirmDelete}
             onCancel={() => setStatusToDelete(null)}
             confirmText="Delete"

@@ -364,7 +364,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                   className="p-1 mr-2"
                   aria-label={`Change status for ${item.name}, current status is ${currentStatus?.name}`}
                 >
-                  <IconRenderer iconName={currentStatus?.icon || 'SquareIcon'} className="w-6 h-6 text-pencil-light" />
+                  <IconRenderer iconName={currentStatus?.icon || 'SquareIcon'} className="w-6 h-6" style={{ color: currentStatus?.color || '#666666' }} />
                 </button>
                 <div className="flex-1">
                     <div className="flex items-center gap-3 text-xl text-pencil">
