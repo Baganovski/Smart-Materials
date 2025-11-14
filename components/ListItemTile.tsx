@@ -38,7 +38,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       className={`${tileClasses} ${isDragging ? draggingClasses : ''}`}
     >
       {/* Adhesive strip */}
-      <div className={`absolute top-0 left-0 right-0 h-8 bg-black/5 border-b border-black/10 ${contentClasses}`} />
+      <div className={`absolute top-0 left-0 right-0 h-8 bg-sticky-note-top border-b border-pencil/10 ${contentClasses}`} />
       
       <div className={`pt-10 px-6 pb-6 ${contentClasses}`}>
         <h3 className="text-2xl font-bold text-pencil truncate mb-2">{list.name}</h3>

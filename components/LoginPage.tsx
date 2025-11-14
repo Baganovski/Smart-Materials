@@ -45,14 +45,14 @@ const LoginPage: React.FC = () => {
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
-            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Sticky Tickys</h1>
+            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">List Jotter</h1>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
                 {isSignUp ? 'Create an account to save your lists.' : 'Sign in to access your lists.'}
             </p>
 
             <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2">
                 {/* Adhesive strip */}
-                <div className="absolute top-0 left-0 right-0 h-10 bg-black/5 border-b border-black/10" />
+                <div className="absolute top-0 left-0 right-0 h-10 bg-sticky-note-top border-b border-pencil/10" />
 
                 <div className="relative pt-12 px-8 pb-8">
                     <form onSubmit={handleSubmit}>

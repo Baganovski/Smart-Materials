@@ -176,7 +176,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
-        <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Sticky Tickys</h1>
+        <h1 className="text-5xl sm:text-6xl font-bold text-pencil">List Jotter</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsAdding(true)}
