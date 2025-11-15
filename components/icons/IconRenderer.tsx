@@ -19,6 +19,7 @@ import LightBulbIcon from './LightBulbIcon';
 import FireIcon from './FireIcon';
 import CheckCircleIcon from './CheckCircleIcon';
 import QuestionMarkCircleIcon from './QuestionMarkCircleIcon';
+import CurrencyDollarIcon from './CurrencyDollarIcon';
 
 // Define a map from string names to icon components
 const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
@@ -41,6 +42,7 @@ const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
   FireIcon,
   CheckCircleIcon,
   QuestionMarkCircleIcon,
+  CurrencyDollarIcon,
 };
 
 interface IconRendererProps extends React.SVGProps<SVGSVGElement> {

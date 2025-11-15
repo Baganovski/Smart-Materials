@@ -14,7 +14,7 @@ export const getDefaultStatusGroups = (): StatusGroup[] => [
     name: 'Materials List',
     statuses: [
         { id: 'mat-listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
-        { id: 'ordered', name: 'Ordered', icon: 'ShoppingCartIcon', color: '#3b82f6' },
+        { id: 'ordered', name: 'Ordered', icon: 'TruckIcon', color: '#3b82f6' },
         { id: 'received', name: 'Received', icon: 'CheckSquareIcon', color: '#22c55e' },
         { id: 'returned', name: 'Returned', icon: 'ArrowUturnLeftIcon', color: '#ef4444' },
     ]
@@ -39,7 +39,7 @@ export const PRESET_COLORS: string[] = [
 export const ALL_ICONS: string[] = [
     'SquareIcon',
     'CheckSquareIcon',
-    'CheckCircleIcon',
+    'CurrencyDollarIcon',
     'XCircleIcon',
     'ShoppingCartIcon',
     'TruckIcon',

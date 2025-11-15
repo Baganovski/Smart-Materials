@@ -95,25 +95,30 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
             itemsCopy.sort((a, b) => {
-                // Fix: Refactor sorting logic to be more explicit for TypeScript, resolving potential type errors.
-                // This handles cases where an item's status might not exist in the current workflow.
+                // Fix: Resolve TypeScript error by explicitly handling cases where a status might not
+                // be found in the status map, preventing arithmetic operations on potentially undefined values.
+                // Items with a status not in the current workflow are sorted to the end.
                 const aIndex = statusOrder.get(a.status);
                 const bIndex = statusOrder.get(b.status);
 
                 if (aIndex !== undefined && bIndex !== undefined) {
-                    // Both items have a valid status index.
+                    // Both items have a status, so sort by their order in the workflow.
                     if (aIndex === bIndex) {
                         return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                     }
                     return aIndex - bIndex;
-                } else if (aIndex !== undefined) {
-                    return -1; // a has a status, b doesn't, so a comes first.
-                } else if (bIndex !== undefined) {
-                    return 1; // b has a status, a doesn't, so b comes first.
-                } else {
-                    // Neither item has a valid status, sort by name.
-                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
+                
+                if (aIndex !== undefined) { // Only 'a' has a valid status, so it comes first.
+                    return -1;
+                }
+                
+                if (bIndex !== undefined) { // Only 'b' has a valid status, so it comes first.
+                    return 1;
+                }
+                
+                // Neither item has a valid status, so sort by name.
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
             });
             break;
         case 'custom':

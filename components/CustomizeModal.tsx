@@ -54,12 +54,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
   
   // --- Group Management ---
   const handleAddGroup = () => {
+    const timestamp = Date.now();
     const newGroup: StatusGroup = {
-      id: Date.now().toString(),
+      id: timestamp.toString(),
       name: 'New Workflow',
       statuses: [
-        { id: 'new-1', name: 'To Do', icon: 'SquareIcon', color: '#333333' },
-        { id: 'new-2', name: 'Done', icon: 'CheckSquareIcon', color: '#22c55e' },
+        { id: `${timestamp}-1`, name: 'Listed', icon: 'SquareIcon', color: '#333333' },
+        { id: `${timestamp}-2`, name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
       ],
     };
     setStatusGroups([...statusGroups, newGroup]);
@@ -179,13 +180,13 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                     />
                 ) : (
                     <>
-                        <span className="flex-grow font-bold text-xl p-2">{group.name}</span>
+                        <span className="flex-grow font-bold text-xl p-2 truncate min-w-0" title={group.name}>{group.name}</span>
                         <button onClick={() => setEditingGroupNameId(group.id)} className="p-2 rounded-full md:hover:bg-ink/50" aria-label={`Rename ${group.name}`}>
                             <PencilIcon className="w-5 h-5"/>
                         </button>
                     </>
                 )}
-                <button onClick={() => setEditingGroup(group)} className="px-3 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors text-sm">
+                <button onClick={() => setEditingGroup(group)} className="px-3 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors text-sm whitespace-nowrap">
                     Edit Statuses
                 </button>
                 {statusGroups.length > 1 && (
