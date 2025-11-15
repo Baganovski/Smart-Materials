@@ -81,6 +81,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     };
   }, []);
 
+  // Fix: Resolve TypeScript error in status sorting logic by making undefined checks more explicit.
   const sortedItems = useMemo(() => {
     // Return a new sorted array, but don't modify the original `items` state
     // so the custom order is preserved.
@@ -95,11 +96,23 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
             itemsCopy.sort((a, b) => {
-                const aIndex = statusOrder.get(a.status) ?? Infinity;
-                const bIndex = statusOrder.get(b.status) ?? Infinity;
+                const aIndex = statusOrder.get(a.status);
+                const bIndex = statusOrder.get(b.status);
+
+                if (aIndex === undefined) {
+                    // If a is undefined, check b. If both are undefined, sort by name. Otherwise, push a to the end.
+                    return bIndex === undefined ? a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) : 1;
+                }
+                if (bIndex === undefined) {
+                    // If only b is undefined, push it to the end.
+                    return -1;
+                }
+
+                // From here, both aIndex and bIndex are numbers.
                 if (aIndex === bIndex) {
                     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
+                
                 return aIndex - bIndex;
             });
             break;
@@ -361,11 +374,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
               </h1>
             )}
-            <div className="text-pencil-light px-1 flex flex-col items-start sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <div className="text-pencil-light px-1 flex flex-col items-start gap-2 mt-2">
                 <span>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
                 <div className="relative" ref={groupMenuRef}>
-                    <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-1 text-pencil-light md:hover:text-ink transition-colors" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
-                        <span>Workflow: <strong>{activeGroup.name}</strong></span>
+                    <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-md px-3 py-1" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
+                        <span>{activeGroup.name}</span>
                         <ChevronDownIcon className="w-4 h-4" />
                     </button>
                     <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
