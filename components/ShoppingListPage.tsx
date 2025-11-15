@@ -95,17 +95,25 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
             itemsCopy.sort((a, b) => {
-                // FIX: The `statusOrder.get()` call can return `undefined`, causing a TypeScript error on the subtraction operation.
-                // Using the nullish coalescing operator (`??`) provides a fallback value of `Infinity`.
-                // This ensures `aIndex` and `bIndex` are always numbers and correctly sorts items with undefined statuses to the end.
-                const aIndex = statusOrder.get(a.status) ?? Infinity;
-                const bIndex = statusOrder.get(b.status) ?? Infinity;
+                // Fix: Refactor sorting logic to be more explicit for TypeScript, resolving potential type errors.
+                // This handles cases where an item's status might not exist in the current workflow.
+                const aIndex = statusOrder.get(a.status);
+                const bIndex = statusOrder.get(b.status);
 
-                if (aIndex === bIndex) { // If indices are the same (or both are Infinity), sort by name.
+                if (aIndex !== undefined && bIndex !== undefined) {
+                    // Both items have a valid status index.
+                    if (aIndex === bIndex) {
+                        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+                    }
+                    return aIndex - bIndex;
+                } else if (aIndex !== undefined) {
+                    return -1; // a has a status, b doesn't, so a comes first.
+                } else if (bIndex !== undefined) {
+                    return 1; // b has a status, a doesn't, so b comes first.
+                } else {
+                    // Neither item has a valid status, sort by name.
                     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
-                
-                return aIndex - bIndex;
             });
             break;
         case 'custom':
@@ -330,96 +338,100 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
-      <header className="flex items-center justify-between mb-4 gap-4">
-        <div className="flex items-center flex-grow min-w-0">
-          <button onClick={onBack} className="mr-4 p-2 rounded-full md:hover:bg-highlighter transition-colors" aria-label="Go back">
-            <ChevronLeftIcon className="w-8 h-8" />
-          </button>
-          <div className="flex-grow min-w-0">
-            {isEditingTitle ? (
-              <input
-                type="text"
-                defaultValue={list.name}
-                autoFocus
-                onFocus={(e) => e.target.select()}
-                className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold mb-1 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleUpdateListName((e.target as HTMLInputElement).value);
-                  }
-                  if (e.key === 'Escape') {
-                    setIsEditingTitle(false);
-                  }
-                }}
-                onBlur={(e) => {
-                  handleUpdateListName(e.target.value);
-                }}
-                aria-label="Edit list name"
-              />
-            ) : (
-              <h1
-                onClick={() => setIsEditingTitle(true)}
-                className="group text-4xl sm:text-5xl font-bold mb-1 cursor-pointer md:hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent truncate"
-                title="Click to rename"
-              >
-                <span className="truncate">{list.name}</span>
-                <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              </h1>
-            )}
-            <div className="text-pencil-light px-1 flex flex-col items-start gap-2 mt-2">
-                <span>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
-                <div className="relative" ref={groupMenuRef}>
-                    <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-md px-3 py-1" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
-                        <span>{activeGroup.name}</span>
-                        <ChevronDownIcon className="w-4 h-4" />
-                    </button>
-                    <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                        {userSettings.statusGroups.map(group => (
-                            <button
-                                key={group.id}
-                                onClick={() => {
-                                    if (group.id !== activeGroup.id) {
-                                        setGroupToChange(group);
-                                    }
-                                    setIsGroupMenuOpen(false);
-                                }}
-                                disabled={group.id === activeGroup.id}
-                                className="w-full text-left px-3 py-2 transition-colors disabled:bg-ink/50 disabled:font-bold md:hover:bg-highlighter"
-                            >
-                                {group.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+      <header className="mb-6">
+        <div className="flex items-center mb-4">
+            <button onClick={onBack} className="mr-4 p-2 rounded-full md:hover:bg-highlighter transition-colors" aria-label="Go back">
+                <ChevronLeftIcon className="w-8 h-8" />
+            </button>
+            <div className="flex-grow min-w-0">
+                {isEditingTitle ? (
+                    <input
+                        type="text"
+                        defaultValue={list.name}
+                        autoFocus
+                        onFocus={(e) => e.target.select()}
+                        className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                handleUpdateListName((e.target as HTMLInputElement).value);
+                            }
+                            if (e.key === 'Escape') {
+                                setIsEditingTitle(false);
+                            }
+                        }}
+                        onBlur={(e) => {
+                            handleUpdateListName(e.target.value);
+                        }}
+                        aria-label="Edit list name"
+                    />
+                ) : (
+                    <h1
+                        onClick={() => setIsEditingTitle(true)}
+                        className="group text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent truncate"
+                        title="Click to rename"
+                    >
+                        <span className="truncate">{list.name}</span>
+                        <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    </h1>
+                )}
             </div>
-          </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <div className="relative" ref={sortMenuRef}>
-              <button
-                onClick={() => setIsSortMenuOpen(prev => !prev)}
-                className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full p-3 transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
-                aria-label="Sort items"
-                aria-haspopup="true"
-                aria-expanded={isSortMenuOpen}
-              >
-                <ArrowsUpDownIcon className="w-6 h-6"/>
-              </button>
-              <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                  <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
-                  <SortButton value="custom" label="Custom Order" />
-                  <SortButton value="a-z" label="A-Z" />
-                  <SortButton value="z-a" label="Z-A" />
-                  <SortButton value="status" label="Status" />
+        
+        <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <span className="text-pencil-light">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
+              <div className="relative" ref={groupMenuRef}>
+                  <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-md px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
+                      <span className="truncate" title={activeGroup.name}>{activeGroup.name}</span>
+                      <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+                  </button>
+                  <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                      {userSettings.statusGroups.map(group => (
+                          <button
+                              key={group.id}
+                              onClick={() => {
+                                  if (group.id !== activeGroup.id) {
+                                      setGroupToChange(group);
+                                  }
+                                  setIsGroupMenuOpen(false);
+                              }}
+                              disabled={group.id === activeGroup.id}
+                              className="w-full text-left px-3 py-2 transition-colors disabled:bg-ink/50 disabled:font-bold md:hover:bg-highlighter"
+                          >
+                              {group.name}
+                          </button>
+                      ))}
+                  </div>
               </div>
             </div>
-          <button 
-            onClick={() => setIsPrintModalOpen(true)} 
-            className="p-3 rounded-full md:hover:bg-highlighter transition-colors" 
-            aria-label="Export list"
-          >
-            <ArrowUpOnSquareIcon className="w-7 h-7" />
-          </button>
+
+            <div className="flex items-center gap-1">
+                <div className="relative" ref={sortMenuRef}>
+                    <button
+                        onClick={() => setIsSortMenuOpen(prev => !prev)}
+                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full p-3 transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                        aria-label="Sort items"
+                        aria-haspopup="true"
+                        aria-expanded={isSortMenuOpen}
+                    >
+                        <ArrowsUpDownIcon className="w-6 h-6"/>
+                    </button>
+                    <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
+                        <SortButton value="custom" label="Custom Order" />
+                        <SortButton value="a-z" label="A-Z" />
+                        <SortButton value="z-a" label="Z-A" />
+                        <SortButton value="status" label="Status" />
+                    </div>
+                </div>
+                <button
+                    onClick={() => setIsPrintModalOpen(true)}
+                    className="p-3 rounded-full md:hover:bg-highlighter transition-colors"
+                    aria-label="Export list"
+                >
+                    <ArrowUpOnSquareIcon className="w-7 h-7" />
+                </button>
+            </div>
         </div>
       </header>
       
