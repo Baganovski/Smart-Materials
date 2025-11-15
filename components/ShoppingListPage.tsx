@@ -271,15 +271,12 @@ const handleUpdateItemName = (id: string, newName: string) => {
   const confirmGroupChange = () => {
     if (!groupToChange) return;
 
-    const newGroupStatusIds = new Set(groupToChange.statuses.map(s => s.id));
     const firstStatusOfNewGroup = groupToChange.statuses[0]?.id;
 
-    const updatedItems = items.map(item => {
-        if (!newGroupStatusIds.has(item.status)) {
-            return { ...item, status: firstStatusOfNewGroup || '' };
-        }
-        return item;
-    });
+    const updatedItems = items.map(item => ({
+        ...item,
+        status: firstStatusOfNewGroup || '',
+    }));
 
     onUpdateList({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
     setGroupToChange(null);
@@ -464,7 +461,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       <ConfirmationModal
         isOpen={!!groupToChange}
         title="Change Workflow"
-        message={`Are you sure you want to change this list's workflow to "${groupToChange?.name}"? The status of items that don't match the new workflow will be reset.`}
+        message={`Are you sure you want to change this list's workflow to "${groupToChange?.name}"? The status of all items will be reset.`}
         onConfirm={confirmGroupChange}
         onCancel={() => setGroupToChange(null)}
         confirmText="Change"
