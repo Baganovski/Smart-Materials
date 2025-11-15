@@ -148,7 +148,12 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   };
 
   const handleCycleStatus = (id: string) => {
-    const newItems = items.map(item => {
+    // If sorted by status, use the currently displayed order (sortedItems)
+    // as the basis for the update. This "locks in" the visual order.
+    // Otherwise, use the standard custom order from `items`.
+    const itemsToUpdate = sortBy === 'status' ? sortedItems : items;
+
+    const newItems = itemsToUpdate.map(item => {
       if (item.id === id) {
         const currentIndex = activeGroup.statuses.findIndex(s => s.id === item.status);
         const nextIndex = (currentIndex + 1) % activeGroup.statuses.length;
@@ -156,6 +161,15 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       }
       return item;
     });
+
+    // If the sort was by status, switch it to custom and update the local items
+    // state simultaneously to prevent the item from "jumping" on re-render.
+    // React batches these state updates.
+    if (sortBy === 'status') {
+      setItems(newItems);
+      setSortBy('custom');
+    }
+
     onUpdateList({ ...list, items: newItems });
   };
 
@@ -278,6 +292,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         status: firstStatusOfNewGroup || '',
     }));
 
+    // Fix: Corrected typo from `groupTochange` to `groupToChange`.
     onUpdateList({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
     setGroupToChange(null);
   };
