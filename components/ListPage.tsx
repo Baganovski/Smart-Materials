@@ -6,6 +6,7 @@ import ConfirmationModal from './ConfirmationModal';
 import CustomizeModal from './CustomizeModal';
 // Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
 import { auth, firebase } from '../firebase';
+import CogIcon from './icons/CogIcon';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -196,6 +197,13 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       <header className="flex justify-between items-center mb-8 gap-4">
         <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Listfully</h1>
         <div className="flex items-center gap-3">
+           <button
+            onClick={() => setIsCustomizeModalOpen(true)}
+            className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            aria-label="Customize workflows"
+          >
+            <CogIcon className="w-7 h-7" />
+          </button>
           <button
             onClick={() => setIsAdding(true)}
             className="bg-ink md:hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
@@ -224,12 +232,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                       <p className="font-bold truncate">{user.displayName || user.email}</p>
                       <p className="text-sm text-pencil-light truncate">{user.email}</p>
                     </div>
-                    <button 
-                      onClick={() => { setIsCustomizeModalOpen(true); setIsUserMenuOpen(false); }} 
-                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
-                    >
-                      <span>Customize</span>
-                    </button>
                     <button 
                       onClick={handleChangePassword} 
                       className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"

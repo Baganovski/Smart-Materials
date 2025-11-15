@@ -81,7 +81,6 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     };
   }, []);
 
-  // Fix: Resolve TypeScript error in status sorting logic by making undefined checks more explicit.
   const sortedItems = useMemo(() => {
     // Return a new sorted array, but don't modify the original `items` state
     // so the custom order is preserved.
@@ -96,20 +95,13 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
             itemsCopy.sort((a, b) => {
-                const aIndex = statusOrder.get(a.status);
-                const bIndex = statusOrder.get(b.status);
+                // FIX: The `statusOrder.get()` call can return `undefined`, causing a TypeScript error on the subtraction operation.
+                // Using the nullish coalescing operator (`??`) provides a fallback value of `Infinity`.
+                // This ensures `aIndex` and `bIndex` are always numbers and correctly sorts items with undefined statuses to the end.
+                const aIndex = statusOrder.get(a.status) ?? Infinity;
+                const bIndex = statusOrder.get(b.status) ?? Infinity;
 
-                if (aIndex === undefined) {
-                    // If a is undefined, check b. If both are undefined, sort by name. Otherwise, push a to the end.
-                    return bIndex === undefined ? a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) : 1;
-                }
-                if (bIndex === undefined) {
-                    // If only b is undefined, push it to the end.
-                    return -1;
-                }
-
-                // From here, both aIndex and bIndex are numbers.
-                if (aIndex === bIndex) {
+                if (aIndex === bIndex) { // If indices are the same (or both are Infinity), sort by name.
                     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
                 
