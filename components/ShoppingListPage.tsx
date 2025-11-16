@@ -98,16 +98,18 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             break;
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
-            // Fix: The sort order for an item's status (`aIndex`, `bIndex`) can be `undefined` if the status ID isn't
-            // in the current workflow. Performing arithmetic (`aIndex - bIndex`) on `undefined` would cause a type error.
-            // This is resolved by coalescing `undefined` to `Infinity`, which correctly places items with an unknown
-            // status at the end of the sorted list.
             itemsCopy.sort((a, b) => {
+                // Fix: The sort order for an item's status (`aIndex`, `bIndex`) can be `undefined` if the status ID isn't
+                // in the current workflow. Performing arithmetic (`aIndex - bIndex`) on `undefined` would cause a type error.
+                // This is resolved by coalescing `undefined` to `Infinity`, which correctly places items with an unknown
+                // status at the end of the sorted list.
                 const aIndex = statusOrder.get(a.status) ?? Infinity;
                 const bIndex = statusOrder.get(b.status) ?? Infinity;
 
                 if (aIndex !== bIndex) {
-                    return aIndex - bIndex;
+                    // FIX: Replaced subtraction with a comparison to avoid potential type errors
+                    // with arithmetic operations.
+                    return aIndex > bIndex ? 1 : -1;
                 }
                 
                 // If statuses have the same sort order (or both are unknown), sort by name as a secondary criterion.
@@ -388,11 +390,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 ) : (
                     <h1
                         onClick={() => setIsEditingTitle(true)}
-                        className="group text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter p-1 -m-1 rounded-md transition-colors flex items-center gap-2 border-2 border-transparent truncate"
+                        className="group text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter -m-1 rounded-md transition-colors border-2 border-transparent relative"
                         title="Click to rename"
                     >
-                        <span className="truncate">{list.name}</span>
-                        <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <span className="truncate inline-block pt-3 px-1 pb-2">{list.name}</span>
+                        <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 inline-block ml-2 relative -top-1" />
                     </h1>
                 )}
             </div>

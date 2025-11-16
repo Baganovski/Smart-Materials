@@ -41,7 +41,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       <div className={`absolute top-0 left-0 right-0 h-8 bg-sticky-note-top ${contentClasses}`} />
       
       <div className={`pt-10 px-6 pb-6 ${contentClasses}`}>
-        <h3 className="text-2xl font-bold text-pencil truncate mb-2">{list.name}</h3>
+        <h3 className="text-2xl font-bold text-pencil truncate mb-2 leading-normal">{list.name}</h3>
         <p className="text-pencil-light text-base mb-4">
           {itemCount} {itemCount === 1 ? 'item' : 'items'}
         </p>

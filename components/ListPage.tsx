@@ -6,7 +6,7 @@ import ConfirmationModal from './ConfirmationModal';
 import CustomizeModal from './CustomizeModal';
 // Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
 import { auth, firebase } from '../firebase';
-import CogIcon from './icons/CogIcon';
+import ListBulletIcon from './icons/ListBulletIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 
 interface ListPageProps {
@@ -213,7 +213,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
             className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Customize workflows"
           >
-            <CogIcon className="w-7 h-7" />
+            <ListBulletIcon className="w-7 h-7" />
           </button>
           <button
             onClick={() => setIsAdding(true)}
