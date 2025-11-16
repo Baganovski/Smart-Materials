@@ -7,12 +7,13 @@ import CustomizeModal from './CustomizeModal';
 // Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
 import { auth, firebase } from '../firebase';
 import CogIcon from './icons/CogIcon';
+import ChevronDownIcon from './icons/ChevronDownIcon';
 
 interface ListPageProps {
   lists: ShoppingList[];
   user: any;
   userSettings: UserSettings | null;
-  onAddList: (name: string) => void;
+  onAddList: (name: string, statusGroupId: string) => void;
   onDeleteList: (id: string) => void;
   onSelectList: (id: string) => void;
   onSignOut: () => void;
@@ -24,6 +25,7 @@ interface ListPageProps {
 const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings, onDeleteAccount }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [selectedStatusGroupId, setSelectedStatusGroupId] = useState<string>('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -81,11 +83,20 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
     }
   }, [isUserMenuOpen]);
 
+  useEffect(() => {
+    // When the "add list" modal opens, reset the form and set the default workflow
+    if (isAdding) {
+      setNewListName('');
+      if (userSettings && userSettings.statusGroups.length > 0) {
+        setSelectedStatusGroupId(userSettings.statusGroups[0].id);
+      }
+    }
+  }, [isAdding, userSettings]);
+
 
   const handleAddList = () => {
-    if (newListName.trim()) {
-      onAddList(newListName.trim());
-      setNewListName('');
+    if (newListName.trim() && selectedStatusGroupId) {
+      onAddList(newListName.trim(), selectedStatusGroupId);
       setIsAdding(false);
     }
   };
@@ -252,19 +263,43 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         </div>
       </header>
 
-      {isAdding && (
+      {isAdding && userSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
           <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-sm">
             <h2 className="text-2xl font-bold mb-4">Create New List</h2>
-            <input
-              type="text"
-              value={newListName}
-              onChange={(e) => setNewListName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddList()}
-              placeholder="e.g., Kitchen Remodel Project"
-              className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-              autoFocus
-            />
+            <div className="mb-4">
+                <label htmlFor="list-name-input" className="block text-sm font-bold text-pencil-light mb-1">List Name</label>
+                <input
+                    id="list-name-input"
+                    type="text"
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddList()}
+                    placeholder="e.g., Kitchen Remodel Project"
+                    className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                    autoFocus
+                />
+            </div>
+
+            <div className="mb-6">
+                <label htmlFor="workflow-select" className="block text-sm font-bold text-pencil-light mb-1">Workflow</label>
+                <div className="relative">
+                    <select
+                        id="workflow-select"
+                        value={selectedStatusGroupId}
+                        onChange={(e) => setSelectedStatusGroupId(e.target.value)}
+                        className="w-full bg-paper text-pencil p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil appearance-none pr-10"
+                    >
+                        {userSettings.statusGroups.map(group => (
+                            <option key={group.id} value={group.id}>{group.name}</option>
+                        ))}
+                    </select>
+                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-pencil">
+                        <ChevronDownIcon className="w-5 h-5"/>
+                    </div>
+                </div>
+            </div>
+            
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
               <button onClick={handleAddList} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Create</button>

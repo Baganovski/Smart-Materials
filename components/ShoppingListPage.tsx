@@ -98,29 +98,20 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             break;
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
-            // FIX: The values `aIndex` and `bIndex` can be undefined if an item's status is not in the current workflow.
-            // This block explicitly handles all cases to prevent performing arithmetic on `undefined`, which would throw an error.
+            // Fix: The sort order for an item's status (`aIndex`, `bIndex`) can be `undefined` if the status ID isn't
+            // in the current workflow. Performing arithmetic (`aIndex - bIndex`) on `undefined` would cause a type error.
+            // This is resolved by coalescing `undefined` to `Infinity`, which correctly places items with an unknown
+            // status at the end of the sorted list.
             itemsCopy.sort((a, b) => {
-                const aIndex = statusOrder.get(a.status);
-                const bIndex = statusOrder.get(b.status);
+                const aIndex = statusOrder.get(a.status) ?? Infinity;
+                const bIndex = statusOrder.get(b.status) ?? Infinity;
 
-                if (aIndex !== undefined && bIndex !== undefined) {
-                    // Both items have a valid status, so compare their sort order.
-                    if (aIndex === bIndex) {
-                        // If statuses are the same, sort by name as a secondary criterion.
-                        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-                    }
+                if (aIndex !== bIndex) {
                     return aIndex - bIndex;
-                } else if (aIndex !== undefined) {
-                    // Only 'a' has a valid status, so it should come before 'b'.
-                    return -1;
-                } else if (bIndex !== undefined) {
-                    // Only 'b' has a valid status, so it should come before 'a'.
-                    return 1;
-                } else {
-                    // Neither item has a valid status; sort alphabetically by name.
-                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
+                
+                // If statuses have the same sort order (or both are unknown), sort by name as a secondary criterion.
+                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
             });
             break;
         case 'custom':

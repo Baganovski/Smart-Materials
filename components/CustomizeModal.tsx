@@ -11,6 +11,7 @@ import ArrowPathIcon from './icons/ArrowPathIcon';
 import ColorPicker from './ColorPicker';
 import PencilIcon from './icons/PencilIcon';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
+import CheckIcon from './icons/CheckIcon';
 
 
 interface CustomizeModalProps {
@@ -28,7 +29,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
   const [draggedStatus, setDraggedStatus] = useState<CustomStatus | null>(null);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState<string | null>(null); 
   const [isColorPickerOpen, setIsColorPickerOpen] = useState<string | null>(null); 
-  const [statusToDelete, setStatusToDelete] = useState<CustomStatus | null>(null);
+  const [pendingDeleteStatusId, setPendingDeleteStatusId] = useState<string | null>(null);
   const [groupToDelete, setGroupToDelete] = useState<StatusGroup | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [editingGroupNameId, setEditingGroupNameId] = useState<string | null>(null);
@@ -90,16 +91,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     const updatedGroup = { ...editingGroup, statuses: [...editingGroup.statuses, newStatus] };
     setEditingGroup(updatedGroup);
     setStatusGroups(statusGroups.map(g => g.id === editingGroup.id ? updatedGroup : g));
-  };
-
-  const confirmDeleteStatus = () => {
-    if (statusToDelete && editingGroup) {
-        const updatedStatuses = editingGroup.statuses.filter(s => s.id !== statusToDelete.id);
-        const updatedGroup = { ...editingGroup, statuses: updatedStatuses };
-        setEditingGroup(updatedGroup);
-        setStatusGroups(statusGroups.map(g => g.id === editingGroup.id ? updatedGroup : g));
-        setStatusToDelete(null);
-    }
   };
 
   const handleUpdateStatus = (id: string, updatedProps: Partial<CustomStatus>) => {
@@ -227,7 +218,9 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
             onDrop={handleDrop}
             onDragOver={e => e.preventDefault()}
         >
-            {editingGroup?.statuses.map((status) => (
+            {editingGroup?.statuses.map((status) => {
+                const isPendingDelete = pendingDeleteStatusId === status.id;
+                return (
                 <div
                     key={status.id}
                     draggable
@@ -249,12 +242,34 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                         className="w-full bg-transparent text-pencil p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-transparent focus:border-pencil"
                     />
                     {editingGroup.statuses.length > 1 && (
-                        <button onClick={() => setStatusToDelete(status)} className="p-2 rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger" aria-label={`Delete status ${status.name}`}>
-                            <TrashIcon className="w-5 h-5" />
+                        <button
+                            onClick={() => {
+                                if (isPendingDelete) {
+                                    // Perform delete
+                                    if (editingGroup) {
+                                        const updatedStatuses = editingGroup.statuses.filter(s => s.id !== status.id);
+                                        const updatedGroup = { ...editingGroup, statuses: updatedStatuses };
+                                        setEditingGroup(updatedGroup);
+                                        setStatusGroups(statusGroups.map(g => g.id === editingGroup.id ? updatedGroup : g));
+                                        setPendingDeleteStatusId(null);
+                                    }
+                                } else {
+                                    setPendingDeleteStatusId(status.id);
+                                }
+                            }}
+                            onBlur={() => {
+                                setTimeout(() => {
+                                    setPendingDeleteStatusId(currentId => currentId === status.id ? null : currentId);
+                                }, 150);
+                            }}
+                            className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-md' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
+                            aria-label={isPendingDelete ? `Confirm delete status ${status.name}` : `Delete status ${status.name}`}
+                        >
+                            {isPendingDelete ? <CheckIcon className="w-5 h-5" /> : <TrashIcon className="w-5 h-5" />}
                         </button>
                     )}
                 </div>
-            ))}
+            )})}
         </div>
         <button onClick={handleAddStatus} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
             <PlusIcon className="w-5 h-5" />
@@ -283,13 +298,6 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                 onClose={() => setIsColorPickerOpen(null)}
             />
         )}
-        <ConfirmationModal
-            isOpen={!!statusToDelete}
-            title="Delete Status"
-            message={`Are you sure you want to delete the "${statusToDelete?.name}" status?`}
-            onConfirm={confirmDeleteStatus}
-            onCancel={() => setStatusToDelete(null)}
-        />
          <ConfirmationModal
             isOpen={!!groupToDelete}
             title="Delete Workflow"

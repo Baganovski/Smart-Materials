@@ -105,17 +105,15 @@ const App: React.FC = () => {
     }
   }, [user, needsVerification]);
 
-  const addList = async (name: string) => {
-    if (!user || !userSettings) return;
+  const addList = async (name: string, statusGroupId: string) => {
+    if (!user) return;
     try {
-      // Assign the first status group by default
-      const defaultStatusGroupId = userSettings.statusGroups[0]?.id || 'default';
       await db.collection('lists').add({
         uid: user.uid,
         name,
         items: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        statusGroupId: defaultStatusGroupId,
+        statusGroupId: statusGroupId,
       });
     } catch (error) {
       console.error("Error adding document: ", error);
