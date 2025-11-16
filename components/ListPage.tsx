@@ -8,6 +8,7 @@ import CustomizeModal from './CustomizeModal';
 import { auth, firebase } from '../firebase';
 import ListBulletIcon from './icons/ListBulletIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import HistoryModal from './HistoryModal';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -27,6 +28,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   const [newListName, setNewListName] = useState('');
   const [selectedStatusGroupId, setSelectedStatusGroupId] = useState<string>('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
@@ -244,8 +246,14 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                       <p className="text-sm text-pencil-light truncate">{user.email}</p>
                     </div>
                     <button 
-                      onClick={handleChangePassword} 
+                      onClick={() => { setIsHistoryModalOpen(true); setIsUserMenuOpen(false); }}
                       className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
+                    >
+                      Item History
+                    </button>
+                    <button 
+                      onClick={handleChangePassword} 
+                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20"
                     >
                       Change Password
                     </button>
@@ -314,6 +322,14 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
           onClose={() => setIsCustomizeModalOpen(false)}
           settings={userSettings}
           onSave={onUpdateUserSettings}
+        />
+      )}
+
+      {user && (
+         <HistoryModal 
+            isOpen={isHistoryModalOpen}
+            onClose={() => setIsHistoryModalOpen(false)}
+            user={user}
         />
       )}
 

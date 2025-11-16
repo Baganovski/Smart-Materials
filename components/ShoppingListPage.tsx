@@ -13,6 +13,7 @@ import ChevronDownIcon from './icons/ChevronDownIcon';
 import CheckIcon from './icons/CheckIcon';
 import { suggestItems } from '../services/geminiService';
 import PlusIcon from './icons/PlusIcon';
+import * as historyService from '../services/historyService';
 
 
 type SortOption = 'custom' | 'a-z' | 'z-a' | 'status';
@@ -42,6 +43,11 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+
+  // For history suggestions
+  const [historyItems, setHistoryItems] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const activeGroup = useMemo(() => 
     userSettings.statusGroups.find(g => g.id === list.statusGroupId) || userSettings.statusGroups[0] || { id: 'fallback', name: 'Default', statuses: [] },
@@ -77,6 +83,9 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
         setIsGroupMenuOpen(false);
       }
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setSuggestions([]);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -84,6 +93,15 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    historyService.getHistory(list.uid)
+      .then(items => {
+        setHistoryItems(items);
+      })
+      .catch(err => console.error("Failed to fetch history:", err));
+  }, [list.uid]);
+
 
   const sortedItems = useMemo(() => {
     // Return a new sorted array, but don't modify the original `items` state
@@ -124,7 +142,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   }, [items, sortBy, activeGroup.statuses]);
 
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = newItemName.trim();
     const quantity = parseInt(newItemQty, 10) || 1;
@@ -140,6 +158,38 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     onUpdateList({ ...list, items: [newItem, ...items] });
     setNewItemName('');
     setNewItemQty('1');
+    setSuggestions([]);
+
+    // Add to history
+    try {
+        await historyService.addHistoryItem(list.uid, name);
+        // Optimistically update local history state to avoid re-fetch
+        setHistoryItems(prev => {
+            const lowerCaseName = name.toLowerCase();
+            if (prev.includes(lowerCaseName)) {
+                return prev;
+            }
+            return [...prev, lowerCaseName].sort();
+        });
+    } catch (err) {
+        console.error("Failed to update history:", err);
+    }
+  };
+
+  const handleNewItemNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewItemName(value);
+
+    if (value.trim().length > 0) {
+        const lowerCaseValue = value.toLowerCase();
+        // Don't suggest the exact same thing they've already typed
+        const filtered = historyItems.filter(item => 
+            item.toLowerCase().includes(lowerCaseValue) && item.toLowerCase() !== lowerCaseValue
+        ).slice(0, 5); // Limit to 5 suggestions
+        setSuggestions(filtered);
+    } else {
+        setSuggestions([]);
+    }
   };
 
   const handleCycleStatus = (id: string) => {
@@ -359,6 +409,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
     </button>
   );
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="mb-6">
@@ -488,33 +540,55 @@ const handleUpdateItemName = (id: string, newName: string) => {
         confirmText="Change"
       />
 
-
-      <form onSubmit={handleAddItem} className="mb-6 grid grid-cols-[70px_1fr_auto] gap-3 items-center">
-        <input
-            type="number"
-            value={newItemQty}
-            onChange={(e) => setNewItemQty(e.target.value)}
-            placeholder="Qty"
-            min="1"
+      <div ref={suggestionsRef} className="relative mb-6">
+        <form onSubmit={handleAddItem} className="grid grid-cols-[70px_1fr_auto] gap-3 items-center">
+          <input
+              type="number"
+              value={newItemQty}
+              onChange={(e) => setNewItemQty(e.target.value)}
+              placeholder="Qty"
+              min="1"
+              className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+              aria-label="Quantity"
+          />
+          <input
+            type="text"
+            value={newItemName}
+            onChange={handleNewItemNameChange}
+            placeholder="Add a new item..."
             className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-            aria-label="Quantity"
-        />
-        <input
-          type="text"
-          value={newItemName}
-          onChange={(e) => setNewItemName(e.target.value)}
-          placeholder="Add a new item..."
-          className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
-          aria-label="New item name"
-        />
-        <button 
-          type="submit" 
-          className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink" 
-          aria-label="Add item"
-        >
-          +
-        </button>
-      </form>
+            aria-label="New item name"
+            autoComplete="off"
+          />
+          <button 
+            type="submit" 
+            className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink" 
+            aria-label="Add item"
+          >
+            +
+          </button>
+        </form>
+        {suggestions.length > 0 && (
+            <div className="absolute top-full -mt-2 w-full bg-paper border-2 border-pencil rounded-md shadow-sketchy z-10 max-h-48 overflow-y-auto">
+                <ul>
+                    {suggestions.map(suggestion => (
+                        <li key={suggestion}>
+                            <button
+                                type="button"
+                                className="w-full text-left px-4 py-2 text-lg hover:bg-highlighter transition-colors"
+                                onClick={() => {
+                                    setNewItemName(capitalize(suggestion));
+                                    setSuggestions([]);
+                                }}
+                            >
+                                {capitalize(suggestion)}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )}
+      </div>
 
       <div 
         className="space-y-1 mb-8 min-h-[200px]"
