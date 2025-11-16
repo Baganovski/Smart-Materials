@@ -56,7 +56,7 @@ const Bin: React.FC<BinProps> = ({ isVisible, onDrop }) => {
             isVisible ? '' : 'scale-75'
         }`}
       >
-        <div className={`p-6 rounded-full border-2 border-dashed transition-all duration-300 ${
+        <div className={`p-6 rounded-lg border-2 border-dashed transition-all duration-300 ${
             isOver 
                 ? 'bg-danger/10 border-danger scale-110' 
                 : isVisible 

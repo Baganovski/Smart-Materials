@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ShoppingList, ShoppingListItem, UserSettings, StatusGroup } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
-import PlusIcon from './icons/PlusIcon';
 import TrashIcon from './icons/TrashIcon';
 import ArrowUpOnSquareIcon from './icons/ArrowUpOnSquareIcon';
 import ClipboardIcon from './icons/ClipboardIcon';
@@ -11,6 +10,9 @@ import IconRenderer from './icons/IconRenderer';
 import ArrowsUpDownIcon from './icons/ArrowsUpDownIcon';
 import ConfirmationModal from './ConfirmationModal';
 import ChevronDownIcon from './icons/ChevronDownIcon';
+import CheckIcon from './icons/CheckIcon';
+import { suggestItems } from '../services/geminiService';
+import PlusIcon from './icons/PlusIcon';
 
 
 type SortOption = 'custom' | 'a-z' | 'z-a' | 'status';
@@ -37,6 +39,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
   const [groupToChange, setGroupToChange] = useState<StatusGroup | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +70,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // FIX: Corrected typo from sortMenuref to sortMenuRef.
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
         setIsSortMenuOpen(false);
       }
@@ -94,31 +98,29 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             break;
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
+            // FIX: The values `aIndex` and `bIndex` can be undefined if an item's status is not in the current workflow.
+            // This block explicitly handles all cases to prevent performing arithmetic on `undefined`, which would throw an error.
             itemsCopy.sort((a, b) => {
-                // Fix: Resolve TypeScript error by explicitly handling cases where a status might not
-                // be found in the status map, preventing arithmetic operations on potentially undefined values.
-                // Items with a status not in the current workflow are sorted to the end.
                 const aIndex = statusOrder.get(a.status);
                 const bIndex = statusOrder.get(b.status);
 
                 if (aIndex !== undefined && bIndex !== undefined) {
-                    // Both items have a status, so sort by their order in the workflow.
+                    // Both items have a valid status, so compare their sort order.
                     if (aIndex === bIndex) {
+                        // If statuses are the same, sort by name as a secondary criterion.
                         return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                     }
                     return aIndex - bIndex;
-                }
-                
-                if (aIndex !== undefined) { // Only 'a' has a valid status, so it comes first.
+                } else if (aIndex !== undefined) {
+                    // Only 'a' has a valid status, so it should come before 'b'.
                     return -1;
-                }
-                
-                if (bIndex !== undefined) { // Only 'b' has a valid status, so it comes first.
+                } else if (bIndex !== undefined) {
+                    // Only 'b' has a valid status, so it should come before 'a'.
                     return 1;
+                } else {
+                    // Neither item has a valid status; sort alphabetically by name.
+                    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
                 }
-                
-                // Neither item has a valid status, so sort by name.
-                return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
             });
             break;
         case 'custom':
@@ -171,10 +173,6 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     }
 
     onUpdateList({ ...list, items: newItems });
-  };
-
-  const handleDeleteItem = (id: string) => {
-    onUpdateList({ ...list, items: items.filter(item => item.id !== id) });
   };
   
   const handleUpdateItemQuantity = (id: string, newQuantityStr: string) => {
@@ -297,6 +295,21 @@ const handleUpdateItemName = (id: string, newName: string) => {
     setGroupToChange(null);
   };
 
+  
+  const handleBlurDelete = (itemId: string) => {
+    // Use a timeout to allow a potential click event to be processed first.
+    // If the user clicks to confirm, the onClick handler will delete the item.
+    // If they click away, this blur handler will cancel the pending state.
+    setTimeout(() => {
+      setPendingDeleteId(currentPendingId => {
+        if (currentPendingId === itemId) {
+          return null; // Reset only if this item is still pending
+        }
+        return currentPendingId; // Otherwise, do nothing
+      });
+    }, 150);
+  };
+
   const printableList = useMemo(() => {
     const title = `List: ${list.name}\n====================\n\n`;
 
@@ -357,7 +370,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="mb-6">
         <div className="flex items-center mb-4">
-            <button onClick={onBack} className="mr-4 p-2 rounded-full md:hover:bg-highlighter transition-colors" aria-label="Go back">
+            <button onClick={onBack} className="mr-4 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper" aria-label="Go back">
                 <ChevronLeftIcon className="w-8 h-8" />
             </button>
             <div className="flex-grow min-w-0">
@@ -422,11 +435,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
                 <div className="relative" ref={sortMenuRef}>
                     <button
                         onClick={() => setIsSortMenuOpen(prev => !prev)}
-                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full p-3 transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                         aria-label="Sort items"
                         aria-haspopup="true"
                         aria-expanded={isSortMenuOpen}
@@ -443,7 +456,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 </div>
                 <button
                     onClick={() => setIsPrintModalOpen(true)}
-                    className="p-3 rounded-full md:hover:bg-highlighter transition-colors"
+                    className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                     aria-label="Export list"
                 >
                     <ArrowUpOnSquareIcon className="w-7 h-7" />
@@ -501,8 +514,12 @@ const handleUpdateItemName = (id: string, newName: string) => {
           className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
           aria-label="New item name"
         />
-        <button type="submit" className="bg-ink md:hover:bg-ink-light text-pencil rounded-md p-3 transition-colors flex justify-center items-center" aria-label="Add item">
-          <PlusIcon />
+        <button 
+          type="submit" 
+          className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink" 
+          aria-label="Add item"
+        >
+          +
         </button>
       </form>
 
@@ -515,6 +532,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
           const currentStatus = statusMap.get(item.status);
           const isDraggable = sortBy === 'custom';
           const isDragging = draggedItem?.id === item.id;
+          const isPendingDelete = pendingDeleteId === item.id;
           return (
             <React.Fragment key={item.id}>
               {dropIndicatorIndex === index && (
@@ -527,9 +545,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 onDragEnd={handleDragEnd}
                 className={`flex items-center p-4 transition-all group ${ isDragging ? 'opacity-30' : '' } border-b-2 border-dashed border-pencil/10`}
               >
-                <div className={`mr-2 ${isDraggable ? 'cursor-grab' : 'cursor-default'}`}>
-                  <DragHandleIcon className="w-6 h-6 text-pencil/30 md:group-hover:text-pencil/60 transition-colors" />
-                </div>
+                {isDraggable && (
+                  <div className="mr-2 cursor-grab">
+                    <DragHandleIcon className="w-6 h-6 text-pencil/30 md:group-hover:text-pencil/60 transition-colors" />
+                  </div>
+                )}
                 <button
                   onClick={() => handleCycleStatus(item.id)}
                   className="p-1 mr-2"
@@ -603,8 +623,20 @@ const handleUpdateItemName = (id: string, newName: string) => {
                         </div>
                     </div>
                 </div>
-                <button onClick={() => handleDeleteItem(item.id)} className="p-2 rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger transition-colors" aria-label={`Delete ${item.name}`}>
-                  <TrashIcon className="w-5 h-5" />
+                <button
+                  onClick={() => {
+                    if (isPendingDelete) {
+                      onUpdateList({ ...list, items: items.filter(i => i.id !== item.id) });
+                      setPendingDeleteId(null);
+                    } else {
+                      setPendingDeleteId(item.id);
+                    }
+                  }}
+                  onBlur={() => handleBlurDelete(item.id)}
+                  className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-md' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
+                  aria-label={isPendingDelete ? `Confirm delete ${item.name}` : `Delete ${item.name}`}
+                >
+                  {isPendingDelete ? <CheckIcon className="w-5 h-5" /> : <TrashIcon className="w-5 h-5" />}
                 </button>
               </div>
             </React.Fragment>

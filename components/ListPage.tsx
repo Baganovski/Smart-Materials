@@ -199,14 +199,14 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         <div className="flex items-center gap-3">
            <button
             onClick={() => setIsCustomizeModalOpen(true)}
-            className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Customize workflows"
           >
             <CogIcon className="w-7 h-7" />
           </button>
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-ink md:hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Add new list"
           >
             +
@@ -214,7 +214,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
            <div className="relative" ref={userMenuRef}>
              <button
                 onClick={() => setIsUserMenuOpen(prev => !prev)}
-                className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                className="w-12 h-12 rounded-md border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                 aria-label="Open user menu"
                 aria-haspopup="true"
                 aria-expanded={isUserMenuOpen}
