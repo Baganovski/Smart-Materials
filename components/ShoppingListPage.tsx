@@ -426,11 +426,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 ) : (
                     <h1
                         onClick={() => setIsEditingTitle(true)}
-                        className="group text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter -m-1 rounded-md transition-colors border-2 border-transparent relative"
+                        className="group flex items-center gap-2 text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter -m-1 rounded-md transition-colors border-2 border-transparent"
                         title="Click to rename"
                     >
                         <span className="truncate inline-block pt-3 px-1 pb-3">{list.name}</span>
-                        <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 inline-block ml-2 relative -top-1" />
+                        <PencilIcon className="w-6 h-6 text-pencil-light opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     </h1>
                 )}
             </div>
