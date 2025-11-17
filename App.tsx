@@ -59,7 +59,7 @@ const App: React.FC = () => {
             const migratedSettings: UserSettings = {
               statusGroups: [{
                 id: 'default',
-                name: 'My Workflow',
+                name: 'My Template',
                 statuses: data.statuses,
               }]
             };
