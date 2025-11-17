@@ -58,7 +58,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     const timestamp = Date.now();
     const newGroup: StatusGroup = {
       id: timestamp.toString(),
-      name: 'New Workflow',
+      name: 'New Template',
       statuses: [
         { id: `${timestamp}-1`, name: 'Listed', icon: 'SquareIcon', color: '#333333' },
         { id: `${timestamp}-2`, name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
@@ -144,7 +144,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
 
   const renderGroupList = () => (
     <>
-      <h2 className="text-3xl font-bold mb-1">Customize Workflows</h2>
+      <h2 className="text-3xl font-bold mb-1">Customize Templates</h2>
       <p className="text-pencil-light mb-6">Create and manage groups of statuses for your lists.</p>
       <div className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
         {statusGroups.map(group => (
@@ -190,7 +190,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
       </div>
       <button onClick={handleAddGroup} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
           <PlusIcon className="w-5 h-5" />
-          <span>Add Workflow</span>
+          <span>Add Template</span>
       </button>
        <div className="flex justify-between items-center gap-3">
           <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors flex items-center gap-2" title="Reset to default statuses">
@@ -209,10 +209,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     <>
        <button onClick={() => setEditingGroup(null)} className="flex items-center gap-1 text-pencil-light md:hover:text-ink mb-4">
             <ChevronLeftIcon className="w-5 h-5" />
-            <span>Back to Workflows</span>
+            <span>Back to Templates</span>
        </button>
         <h2 className="text-3xl font-bold mb-1">Editing "{editingGroup?.name}"</h2>
-        <p className="text-pencil-light mb-6">Define the statuses for this workflow.</p>
+        <p className="text-pencil-light mb-6">Define the statuses for this template.</p>
         <div 
             className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2"
             onDrop={handleDrop}
@@ -300,15 +300,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
         )}
          <ConfirmationModal
             isOpen={!!groupToDelete}
-            title="Delete Workflow"
-            message={`Are you sure you want to delete the "${groupToDelete?.name}" workflow? This action cannot be undone.`}
+            title="Delete Template"
+            message={`Are you sure you want to delete the "${groupToDelete?.name}" template? This action cannot be undone.`}
             onConfirm={confirmDeleteGroup}
             onCancel={() => setGroupToDelete(null)}
         />
         <ConfirmationModal
             isOpen={isResetConfirmOpen}
-            title="Reset All Workflows"
-            message="Are you sure you want to reset all workflows to the default? This cannot be undone."
+            title="Reset All Templates"
+            message="Are you sure you want to reset all templates to the default? This cannot be undone."
             onConfirm={handleConfirmReset}
             onCancel={() => setIsResetConfirmOpen(false)}
             confirmText="Reset"

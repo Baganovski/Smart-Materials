@@ -530,8 +530,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
       
       <ConfirmationModal
         isOpen={!!groupToChange}
-        title="Change Workflow"
-        message={`Are you sure you want to change this list's workflow to "${groupToChange?.name}"? The status of all items will be reset.`}
+        title="Change Template"
+        message={`Are you sure you want to change this list's template to "${groupToChange?.name}"? The status of all items will be reset.`}
         onConfirm={confirmGroupChange}
         onCancel={() => setGroupToChange(null)}
         confirmText="Change"

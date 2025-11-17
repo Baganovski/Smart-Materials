@@ -213,7 +213,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
            <button
             onClick={() => setIsCustomizeModalOpen(true)}
             className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
-            aria-label="Customize workflows"
+            aria-label="Customize templates"
           >
             <ListBulletIcon className="w-7 h-7" />
           </button>
@@ -290,10 +290,10 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
             </div>
 
             <div className="mb-6">
-                <label htmlFor="workflow-select" className="block text-sm font-bold text-pencil-light mb-1">Workflow</label>
+                <label htmlFor="template-select" className="block text-sm font-bold text-pencil-light mb-1">Template</label>
                 <div className="relative">
                     <select
-                        id="workflow-select"
+                        id="template-select"
                         value={selectedStatusGroupId}
                         onChange={(e) => setSelectedStatusGroupId(e.target.value)}
                         className="w-full bg-paper text-pencil p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil appearance-none pr-10"
