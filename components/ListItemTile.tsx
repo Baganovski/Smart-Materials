@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingList } from '../types';
 
 interface ListItemTileProps {
@@ -19,6 +19,12 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
   onDragEnd,
 }) => {
   const itemCount = list.items?.length || 0;
+  
+  // Generate a random rotation once per component instance for a stable layout.
+  const [rotationClass] = useState(() => {
+    const degrees = (Math.random() * 6 - 3).toFixed(2); // Random float between -3.00 and 3.00
+    return `rotate-[${degrees}deg]`;
+  });
 
   const tileClasses = `relative bg-sticky-note cursor-grab transition-all duration-300 group transform md:hover:scale-105`;
   // When dragging, turn the tile into a dashed placeholder and reset transforms.
@@ -35,7 +41,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      className={`${tileClasses} ${isDragging ? draggingClasses : ''}`}
+      className={`${tileClasses} ${rotationClass} ${isDragging ? draggingClasses : ''}`}
     >
       {/* Adhesive strip */}
       <div className={`absolute top-0 left-0 right-0 h-8 bg-sticky-note-top ${contentClasses}`} />
