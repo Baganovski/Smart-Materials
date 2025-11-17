@@ -22,7 +22,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
   
   // Generate a random rotation once per component instance for a stable layout.
   const [rotationClass] = useState(() => {
-    const degrees = (Math.random() * 6 - 3).toFixed(2); // Random float between -3.00 and 3.00
+    const degrees = (Math.random() * 4 - 2).toFixed(2); // Random float between -2.00 and 2.00
     return `rotate-[${degrees}deg]`;
   });
 
