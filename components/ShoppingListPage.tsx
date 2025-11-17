@@ -11,8 +11,6 @@ import ArrowsUpDownIcon from './icons/ArrowsUpDownIcon';
 import ConfirmationModal from './ConfirmationModal';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import CheckIcon from './icons/CheckIcon';
-import { suggestItems } from '../services/geminiService';
-import PlusIcon from './icons/PlusIcon';
 import * as historyService from '../services/historyService';
 
 
@@ -26,7 +24,6 @@ interface ShoppingListPageProps {
 }
 
 const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings, onBack, onUpdateList }) => {
-  const [items, setItems] = useState<ShoppingListItem[]>(list.items || []);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQty, setNewItemQty] = useState('1');
   const [editingQuantityItemId, setEditingQuantityItemId] = useState<string | null>(null);
@@ -43,6 +40,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const transitionalItemsRef = useRef<ShoppingListItem[] | null>(null);
 
   // For history suggestions
   const [historyItems, setHistoryItems] = useState<string[]>([]);
@@ -71,12 +69,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   }, []);
   
   useEffect(() => {
-    setItems(list.items || []);
-  }, [list.items]);
-  
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // FIX: Corrected typo from sortMenuref to sortMenuRef.
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
         setIsSortMenuOpen(false);
       }
@@ -102,78 +95,80 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       .catch(err => console.error("Failed to fetch history:", err));
   }, [list.uid]);
 
+  useEffect(() => {
+    // Clear the transitional state after every render to prevent it from being stale.
+    transitionalItemsRef.current = null;
+  });
+
 
   const sortedItems = useMemo(() => {
-    // Return a new sorted array, but don't modify the original `items` state
-    // so the custom order is preserved.
-    const itemsCopy = [...items];
+    const itemsCopy = [...(list.items || [])];
     switch (sortBy) {
         case 'a-z':
-            itemsCopy.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-            break;
+            return itemsCopy.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
         case 'z-a':
-            itemsCopy.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
-            break;
+            return itemsCopy.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: 'base' }));
         case 'status':
             const statusOrder = new Map(activeGroup.statuses.map((s, i) => [s.id, i]));
-            itemsCopy.sort((a, b) => {
-                // Fix: The sort order for an item's status (`aIndex`, `bIndex`) can be `undefined` if the status ID isn't
-                // in the current workflow. Performing arithmetic (`aIndex - bIndex`) on `undefined` would cause a type error.
-                // This is resolved by coalescing `undefined` to `Infinity`, which correctly places items with an unknown
-                // status at the end of the sorted list.
+            return itemsCopy.sort((a, b) => {
                 const aIndex = statusOrder.get(a.status) ?? Infinity;
                 const bIndex = statusOrder.get(b.status) ?? Infinity;
 
-                if (aIndex !== bIndex) {
-                    // FIX: Replaced subtraction with a comparison to avoid potential type errors
-                    // with arithmetic operations.
-                    return aIndex > bIndex ? 1 : -1;
+                if (aIndex < bIndex) {
+                    return -1;
+                }
+                if (aIndex > bIndex) {
+                    return 1;
                 }
                 
-                // If statuses have the same sort order (or both are unknown), sort by name as a secondary criterion.
                 return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
             });
-            break;
         case 'custom':
         default:
-            return items; // Return original order from state
+            return itemsCopy; 
     }
-    return itemsCopy;
-  }, [items, sortBy, activeGroup.statuses]);
+  }, [list.items, sortBy, activeGroup.statuses]);
 
+  const itemsToRender = transitionalItemsRef.current || sortedItems;
 
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = newItemName.trim();
-    const quantity = parseInt(newItemQty, 10) || 1;
-    if (!name) return;
-    
+  const handleSortChange = (option: SortOption) => {
+    setSortBy(option);
+    setIsSortMenuOpen(false);
+  };
+  
+  const addItemToList = useCallback(async (name: string, quantity: number) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
     const newItem: ShoppingListItem = {
-        id: Date.now().toString(),
-        name,
-        quantity,
-        status: activeGroup.statuses[0]?.id || 'listed', // Default to first status
+      id: Date.now().toString(),
+      name: trimmedName,
+      quantity,
+      status: activeGroup.statuses[0]?.id || 'listed',
     };
 
-    onUpdateList({ ...list, items: [newItem, ...items] });
+    onUpdateList({ ...list, items: [newItem, ...(list.items || [])] });
+
+    try {
+      await historyService.addHistoryItem(list.uid, trimmedName);
+      setHistoryItems(prev => {
+        const lowerCaseName = trimmedName.toLowerCase();
+        if (prev.some(i => i.toLowerCase() === lowerCaseName)) {
+          return prev;
+        }
+        return [...prev, lowerCaseName].sort();
+      });
+    } catch (err) {
+      console.error("Failed to update history:", err);
+    }
+  }, [activeGroup.statuses, list, onUpdateList, list.uid]);
+
+  const handleAddItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    addItemToList(newItemName, parseInt(newItemQty, 10) || 1);
     setNewItemName('');
     setNewItemQty('1');
     setSuggestions([]);
-
-    // Add to history
-    try {
-        await historyService.addHistoryItem(list.uid, name);
-        // Optimistically update local history state to avoid re-fetch
-        setHistoryItems(prev => {
-            const lowerCaseName = name.toLowerCase();
-            if (prev.includes(lowerCaseName)) {
-                return prev;
-            }
-            return [...prev, lowerCaseName].sort();
-        });
-    } catch (err) {
-        console.error("Failed to update history:", err);
-    }
   };
 
   const handleNewItemNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,34 +188,36 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   };
 
   const handleCycleStatus = (id: string) => {
-    // If sorted by status, use the currently displayed order (sortedItems)
-    // as the basis for the update. This "locks in" the visual order.
-    // Otherwise, use the standard custom order from `items`.
-    const itemsToUpdate = sortBy === 'status' ? sortedItems : items;
-
-    const newItems = itemsToUpdate.map(item => {
-      if (item.id === id) {
-        const currentIndex = activeGroup.statuses.findIndex(s => s.id === item.status);
-        const nextIndex = (currentIndex + 1) % activeGroup.statuses.length;
-        return { ...item, status: activeGroup.statuses[nextIndex].id };
-      }
-      return item;
-    });
-
-    // If the sort was by status, switch it to custom and update the local items
-    // state simultaneously to prevent the item from "jumping" on re-render.
-    // React batches these state updates.
+    const getNextStatusId = (currentStatus: string): string => {
+        const currentStatusIndex = activeGroup.statuses.findIndex(s => s.id === currentStatus);
+        const nextStatusIndex = (currentStatusIndex + 1) % activeGroup.statuses.length;
+        return activeGroup.statuses[nextStatusIndex].id;
+    };
+    
     if (sortBy === 'status') {
-      setItems(newItems);
+      // When sorted by status, changing a status should lock the current
+      // visual order and switch the sort mode to 'custom'.
+      const newItemsInLockedOrder = sortedItems.map(item => 
+        item.id === id ? { ...item, status: getNextStatusId(item.status) } : item
+      );
+      // "Freeze" the visual state for the transitional render
+      transitionalItemsRef.current = newItemsInLockedOrder;
       setSortBy('custom');
+      onUpdateList({ ...list, items: newItemsInLockedOrder });
+    } else {
+      // For all other sort modes, just update the item's status in the canonical list.
+      const canonicalItems = list.items || [];
+      const newItems = canonicalItems.map(item => 
+        item.id === id ? { ...item, status: getNextStatusId(item.status) } : item
+      );
+      onUpdateList({ ...list, items: newItems });
     }
-
-    onUpdateList({ ...list, items: newItems });
   };
   
   const handleUpdateItemQuantity = (id: string, newQuantityStr: string) => {
+    const canonicalItems = list.items || [];
     const newQuantity = parseInt(newQuantityStr, 10);
-    const itemToUpdate = items.find(i => i.id === id);
+    const itemToUpdate = canonicalItems.find(i => i.id === id);
 
     if (!itemToUpdate || isNaN(newQuantity) || newQuantity <= 0) {
         setEditingQuantityItemId(null);
@@ -232,7 +229,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       return;
     }
 
-    const newItems = items.map(item =>
+    const newItems = canonicalItems.map(item =>
         item.id === id ? { ...item, quantity: newQuantity } : item
     );
     onUpdateList({ ...list, items: newItems });
@@ -240,15 +237,16 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
 };
 
 const handleUpdateItemName = (id: string, newName: string) => {
+    const canonicalItems = list.items || [];
     const trimmedName = newName.trim();
     setEditingNameItemId(null);
     
-    const itemToUpdate = items.find(i => i.id === id);
+    const itemToUpdate = canonicalItems.find(i => i.id === id);
     if (!itemToUpdate || !trimmedName || trimmedName === itemToUpdate.name) {
         return;
     }
     
-    const newItems = items.map(item =>
+    const newItems = canonicalItems.map(item =>
         item.id === id ? { 
             ...item, 
             name: trimmedName, 
@@ -290,14 +288,15 @@ const handleUpdateItemName = (id: string, newName: string) => {
   const handleDrop = () => {
     if (draggedItem === null || dropIndicatorIndex === null) return;
     
-    const dragFromIndex = items.findIndex(item => item.id === draggedItem.id);
+    const canonicalItems = list.items || [];
+    const dragFromIndex = canonicalItems.findIndex(item => item.id === draggedItem.id);
     if (dragFromIndex === -1) return;
 
     if (dropIndicatorIndex === dragFromIndex || dropIndicatorIndex === dragFromIndex + 1) {
         return;
     }
 
-    const newItems = [...items];
+    const newItems = [...canonicalItems];
     const [movedItem] = newItems.splice(dragFromIndex, 1);
     
     const finalDropIndex = dropIndicatorIndex > dragFromIndex ? dropIndicatorIndex - 1 : dropIndicatorIndex;
@@ -328,33 +327,30 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
     const firstStatusOfNewGroup = groupToChange.statuses[0]?.id;
 
-    const updatedItems = items.map(item => ({
+    const updatedItems = (list.items || []).map(item => ({
         ...item,
         status: firstStatusOfNewGroup || '',
     }));
 
-    // Fix: Corrected typo from `groupTochange` to `groupToChange`.
     onUpdateList({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
     setGroupToChange(null);
   };
 
   
   const handleBlurDelete = (itemId: string) => {
-    // Use a timeout to allow a potential click event to be processed first.
-    // If the user clicks to confirm, the onClick handler will delete the item.
-    // If they click away, this blur handler will cancel the pending state.
     setTimeout(() => {
       setPendingDeleteId(currentPendingId => {
         if (currentPendingId === itemId) {
-          return null; // Reset only if this item is still pending
+          return null; 
         }
-        return currentPendingId; // Otherwise, do nothing
+        return currentPendingId; 
       });
     }, 150);
   };
 
   const printableList = useMemo(() => {
     const title = `List: ${list.name}\n====================\n\n`;
+    const items = list.items || [];
 
     if (items.length === 0) {
       return `List: ${list.name}\n====================\n\nNo items in this list.`;
@@ -384,7 +380,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     }).filter(Boolean).join('\n\n');
     
     return `${title}${listBody}`;
-  }, [sortedItems, list.name, activeGroup.statuses]);
+  }, [sortedItems, list.name, list.items, activeGroup.statuses]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(printableList).then(() => {
@@ -397,18 +393,6 @@ const handleUpdateItemName = (id: string, newName: string) => {
     });
   };
   
-  const SortButton: React.FC<{ value: SortOption; label: string; }> = ({ value, label }) => (
-    <button
-      onClick={() => {
-        setSortBy(value);
-        setIsSortMenuOpen(false);
-      }}
-      className={`w-full text-left px-3 py-2 transition-colors ${sortBy === value ? 'bg-ink/50 font-bold' : 'md:hover:bg-highlighter'}`}
-    >
-      <span>{label}</span>
-    </button>
-  );
-
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   return (
@@ -454,7 +438,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <span className="text-pencil-light">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
+              <span className="text-pencil-light">{(list.items || []).length} {(list.items || []).length === 1 ? 'item' : 'items'}</span>
               <div className="relative" ref={groupMenuRef}>
                   <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-md px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
                       <span className="truncate" title={activeGroup.name}>{activeGroup.name}</span>
@@ -493,10 +477,23 @@ const handleUpdateItemName = (id: string, newName: string) => {
                     </button>
                     <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                         <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
-                        <SortButton value="custom" label="Custom Order" />
-                        <SortButton value="a-z" label="A-Z" />
-                        <SortButton value="z-a" label="Z-A" />
-                        <SortButton value="status" label="Status" />
+                        {(['custom', 'a-z', 'z-a', 'status'] as SortOption[]).map(option => {
+                            const labels: Record<SortOption, string> = {
+                                'custom': 'Custom Order',
+                                'a-z': 'A-Z',
+                                'z-a': 'Z-A',
+                                'status': 'Status',
+                            };
+                            return (
+                                <button
+                                    key={option}
+                                    onClick={() => handleSortChange(option)}
+                                    className={`w-full text-left px-3 py-2 transition-colors ${sortBy === option ? 'bg-ink/50 font-bold' : 'md:hover:bg-highlighter'}`}
+                                >
+                                    {labels[option]}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
                 <button
@@ -595,7 +592,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         onDrop={sortBy === 'custom' ? handleDrop : undefined}
         onDragOver={(e) => e.preventDefault()}
       >
-        {sortedItems.length > 0 ? sortedItems.map((item, index) => {
+        {itemsToRender.length > 0 ? itemsToRender.map((item, index) => {
           const currentStatus = statusMap.get(item.status);
           const isDraggable = sortBy === 'custom';
           const isDragging = draggedItem?.id === item.id;
@@ -693,7 +690,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <button
                   onClick={() => {
                     if (isPendingDelete) {
-                      onUpdateList({ ...list, items: items.filter(i => i.id !== item.id) });
+                      onUpdateList({ ...list, items: (list.items || []).filter(i => i.id !== item.id) });
                       setPendingDeleteId(null);
                     } else {
                       setPendingDeleteId(item.id);
@@ -713,7 +710,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <p className="text-pencil-light text-xl">No items yet. Add one above to start your list.</p>
             </div>
         )}
-        {dropIndicatorIndex === items.length && (
+        {dropIndicatorIndex === itemsToRender.length && (
           <div className="h-1.5 bg-ink rounded-full my-1 transition-all"></div>
         )}
       </div>
