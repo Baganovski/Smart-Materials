@@ -88,6 +88,9 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   }, []);
 
   useEffect(() => {
+    // Guest lists don't support history to avoid database permissions issues
+    if (list.uid === 'guest') return;
+    
     historyService.getHistory(list.uid)
       .then(items => {
         setHistoryItems(items);
@@ -149,17 +152,20 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
 
     onUpdateList({ ...list, items: [newItem, ...(list.items || [])] });
 
-    try {
-      await historyService.addHistoryItem(list.uid, trimmedName);
-      setHistoryItems(prev => {
-        const lowerCaseName = trimmedName.toLowerCase();
-        if (prev.some(i => i.toLowerCase() === lowerCaseName)) {
-          return prev;
+    // Only update history for authenticated users
+    if (list.uid !== 'guest') {
+        try {
+            await historyService.addHistoryItem(list.uid, trimmedName);
+            setHistoryItems(prev => {
+                const lowerCaseName = trimmedName.toLowerCase();
+                if (prev.some(i => i.toLowerCase() === lowerCaseName)) {
+                return prev;
+                }
+                return [...prev, lowerCaseName].sort();
+            });
+        } catch (err) {
+            console.error("Failed to update history:", err);
         }
-        return [...prev, lowerCaseName].sort();
-      });
-    } catch (err) {
-      console.error("Failed to update history:", err);
     }
   }, [activeGroup.statuses, list, onUpdateList, list.uid]);
 
@@ -175,7 +181,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     const value = e.target.value;
     setNewItemName(value);
 
-    if (value.trim().length > 0) {
+    if (value.trim().length > 0 && historyItems.length > 0) {
         const lowerCaseValue = value.toLowerCase();
         // Don't suggest the exact same thing they've already typed
         const filtered = historyItems.filter(item => 

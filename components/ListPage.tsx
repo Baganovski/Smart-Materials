@@ -9,6 +9,7 @@ import { auth, firebase } from '../firebase';
 import ListBulletIcon from './icons/ListBulletIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import HistoryModal from './HistoryModal';
+import UserIcon from './icons/UserIcon';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -21,9 +22,10 @@ interface ListPageProps {
   onUpdateList: (list: ShoppingList) => void;
   onUpdateUserSettings: (settings: UserSettings) => void;
   onDeleteAccount: () => void;
+  onSignIn?: () => void;
 }
 
-const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings, onDeleteAccount }) => {
+const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddList, onDeleteList, onSelectList, onSignOut, onUpdateList, onUpdateUserSettings, onDeleteAccount, onSignIn }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [selectedStatusGroupId, setSelectedStatusGroupId] = useState<string>('');
@@ -175,8 +177,19 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       console.error("Failed to calculate a valid timestamp for reordering.");
       return;
     }
-
-    const newCreatedAt = firebase.firestore.Timestamp.fromMillis(newTimestampMs);
+    
+    // If user is guest (user is null), we construct a simple date string or object locally.
+    // However, App.tsx updateList handles persistence. We just need to pass the new value.
+    // For firestore, it wants a Timestamp usually, but for local updates strings are fine
+    // if the rest of the app handles it. 
+    // To be safe, if user exists, use Firestore Timestamp. If not, use number/Date.
+    
+    let newCreatedAt;
+    if (user) {
+        newCreatedAt = firebase.firestore.Timestamp.fromMillis(newTimestampMs);
+    } else {
+        newCreatedAt = new Date(newTimestampMs).toISOString();
+    }
     
     onUpdateList({ ...draggedList, createdAt: newCreatedAt });
   };
@@ -224,6 +237,8 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
           >
             +
           </button>
+          
+          {user ? (
            <div className="relative" ref={userMenuRef}>
              <button
                 onClick={() => setIsUserMenuOpen(prev => !prev)}
@@ -268,6 +283,15 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                 )}
              </div>
            </div>
+          ) : (
+             <button
+                onClick={onSignIn}
+                className="px-3 h-12 rounded-md border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-lg focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform md:hover:scale-105"
+                aria-label="Sign In"
+             >
+                Sign In
+             </button>
+          )}
         </div>
       </header>
 
@@ -352,8 +376,13 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 border-2 border-dashed border-pencil/30 rounded-lg">
+        <div className="text-center py-20 border-2 border-dashed border-pencil/30 rounded-lg px-6">
           <p className="text-pencil-light text-xl">No lists yet. Create one to get started!</p>
+          {!user && (
+            <p className="text-pencil-light mt-2">
+              Or <button onClick={onSignIn} className="text-ink font-bold hover:underline">sign in</button> to see your lists.
+            </p>
+          )}
         </div>
       )}
       

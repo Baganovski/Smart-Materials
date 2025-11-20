@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
+import XMarkIcon from './icons/XMarkIcon';
 
 type View = 'signIn' | 'signUp' | 'forgotPassword';
 
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+    onClose?: () => void;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
     const [view, setView] = useState<View>('signIn');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -189,13 +194,22 @@ const LoginPage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
+        <div className="min-h-screen flex flex-col items-center justify-center text-center p-4 relative bg-paper/90 backdrop-blur-sm animate-pop-in z-50">
+             {onClose && (
+                <button 
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-2 text-pencil-light hover:text-pencil transition-colors"
+                    aria-label="Close login"
+                >
+                    <XMarkIcon className="w-10 h-10" />
+                </button>
+            )}
             <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Listfully</h1>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
                 {getPageTitle()}
             </p>
 
-            <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2">
+            <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2 shadow-sketchy">
                 {/* Adhesive strip */}
                 <div className="absolute top-0 left-0 right-0 h-10 bg-sticky-note-top" />
 
