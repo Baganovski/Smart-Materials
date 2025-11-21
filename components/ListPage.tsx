@@ -14,6 +14,8 @@ import UserIcon from './icons/UserIcon';
 import CogIcon from './icons/CogIcon';
 import AccountSettingsModal from './AccountSettingsModal';
 import AppLogoIcon from './icons/AppLogoIcon';
+import HistoryIcon from './icons/HistoryIcon';
+import CoffeeIcon from './icons/CoffeeIcon';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -246,7 +248,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                   onClick={() => { setIsHistoryModalOpen(true); setIsUserMenuOpen(false); }}
                   className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors flex items-center gap-2"
                 >
-                  <ListBulletIcon className="w-4 h-4" />
+                  <HistoryIcon className="w-4 h-4" />
                   Item History
                 </button>
                 <a
@@ -256,7 +258,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                   className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20 flex items-center gap-2 text-pencil no-underline"
                   onClick={() => setIsUserMenuOpen(false)}
                 >
-                  <span className="text-lg leading-none" role="img" aria-label="coffee">☕</span>
+                  <CoffeeIcon className="w-4 h-4" />
                   Buy me a coffee
                 </a>
                 <button 
