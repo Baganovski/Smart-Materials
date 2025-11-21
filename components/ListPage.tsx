@@ -266,13 +266,25 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
              </div>
            </div>
           ) : (
-             <button
-                onClick={onSignIn}
-                className="px-5 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-lg focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform md:hover:scale-105"
-                aria-label="Sign In"
-             >
-                Sign In
-             </button>
+            <>
+                {/* Mobile: Circular Icon Button */}
+                <button
+                    onClick={onSignIn}
+                    className="sm:hidden w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform active:scale-95"
+                    aria-label="Sign In"
+                >
+                    <UserIcon className="w-6 h-6" />
+                </button>
+
+                {/* Desktop: Pill Text Button */}
+                <button
+                    onClick={onSignIn}
+                    className="hidden sm:flex px-5 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter items-center justify-center font-bold text-lg focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform md:hover:scale-105"
+                    aria-label="Sign In"
+                >
+                    Sign In
+                </button>
+            </>
           )}
         </div>
       </header>
