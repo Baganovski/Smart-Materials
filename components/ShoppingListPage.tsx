@@ -537,8 +537,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
       
       <ConfirmationModal
         isOpen={!!groupToChange}
-        title="Change Template"
-        message={`Are you sure you want to change this list's template to "${groupToChange?.name}"? The status of all items will be reset.`}
+        title="Change List Style"
+        message={`Are you sure you want to change this list's style to "${groupToChange?.name}"? The status of all items will be reset.`}
         onConfirm={confirmGroupChange}
         onCancel={() => setGroupToChange(null)}
         confirmText="Change"

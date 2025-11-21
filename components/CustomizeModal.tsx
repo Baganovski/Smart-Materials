@@ -59,7 +59,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     const timestamp = Date.now();
     const newGroup: StatusGroup = {
       id: timestamp.toString(),
-      name: 'New Template',
+      name: 'New Style',
       statuses: [
         { id: `${timestamp}-1`, name: 'Listed', icon: 'SquareIcon', color: '#333333' },
         { id: `${timestamp}-2`, name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
@@ -145,7 +145,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
 
   const renderGroupList = () => (
     <>
-      <h2 className="text-3xl font-bold mb-1">Customize Templates</h2>
+      <h2 className="text-3xl font-bold mb-1">Customize List Styles</h2>
       <p className="text-pencil-light mb-6">Create and manage groups of statuses for your lists.</p>
       <div className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
         {statusGroups.map(group => (
@@ -191,10 +191,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
       </div>
       <button onClick={handleAddGroup} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-full transition-colors mb-6">
           <PlusIcon className="w-5 h-5" />
-          <span>Add Template</span>
+          <span>Add Style</span>
       </button>
        <div className="flex justify-between items-center gap-3">
-          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors flex items-center gap-2" title="Reset to default statuses">
+          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors flex items-center gap-2" title="Reset to default styles">
             <ArrowPathIcon className="w-5 h-5"/>
             <span>Reset</span>
           </button>
@@ -210,10 +210,10 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
     <>
        <button onClick={() => setEditingGroup(null)} className="flex items-center gap-1 text-pencil-light md:hover:text-ink mb-4">
             <ChevronLeftIcon className="w-5 h-5" />
-            <span>Back to Templates</span>
+            <span>Back to Styles</span>
        </button>
         <h2 className="text-3xl font-bold mb-1">Editing "{editingGroup?.name}"</h2>
-        <p className="text-pencil-light mb-6">Define the statuses for this template.</p>
+        <p className="text-pencil-light mb-6">Define the statuses for this style.</p>
         <div 
             className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2"
             onDrop={handleDrop}
@@ -301,15 +301,15 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
         )}
          <ConfirmationModal
             isOpen={!!groupToDelete}
-            title="Delete Template"
-            message={`Are you sure you want to delete the "${groupToDelete?.name}" template? This action cannot be undone.`}
+            title="Delete List Style"
+            message={`Are you sure you want to delete the "${groupToDelete?.name}" style? This action cannot be undone.`}
             onConfirm={confirmDeleteGroup}
             onCancel={() => setGroupToDelete(null)}
         />
         <ConfirmationModal
             isOpen={isResetConfirmOpen}
-            title="Reset All Templates"
-            message="Are you sure you want to reset all templates to the default? This cannot be undone."
+            title="Reset All List Styles"
+            message="Are you sure you want to reset all styles to the default? This cannot be undone."
             onConfirm={handleConfirmReset}
             onCancel={() => setIsResetConfirmOpen(false)}
             confirmText="Reset"

@@ -214,7 +214,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
            <button
             onClick={() => setIsCustomizeModalOpen(true)}
             className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
-            aria-label="Customize templates"
+            aria-label="Customize list styles"
           >
             <ListBulletIcon className="w-7 h-7" />
           </button>
@@ -296,7 +296,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
             </div>
 
             <div className="mb-6">
-                <label htmlFor="template-select" className="block text-sm font-bold text-pencil-light mb-1">Template</label>
+                <label htmlFor="template-select" className="block text-sm font-bold text-pencil-light mb-1">List Style</label>
                 <div className="relative" ref={templateDropdownRef}>
                     <button
                         type="button"
@@ -305,7 +305,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                         className="w-full bg-paper text-pencil p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil flex justify-between items-center"
                     >
                         <span className="truncate mr-2">
-                            {userSettings.statusGroups.find(g => g.id === selectedStatusGroupId)?.name || 'Select Template'}
+                            {userSettings.statusGroups.find(g => g.id === selectedStatusGroupId)?.name || 'Select Style'}
                         </span>
                         <ChevronDownIcon className="w-5 h-5 flex-shrink-0"/>
                     </button>

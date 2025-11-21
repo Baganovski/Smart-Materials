@@ -533,10 +533,10 @@ const App: React.FC = () => {
                                 <div className="mt-2 border-t border-pencil/10 pt-2">
                                     <p className="font-bold text-pencil flex items-center gap-2">
                                         <SlidersIcon className="w-4 h-4" />
-                                        <span>Custom Templates</span>
+                                        <span>Custom Styles</span>
                                     </p>
                                     <p className="text-xs text-pencil-light ml-6">
-                                        Your custom list templates will be merged.
+                                        Your custom list styles will be merged.
                                     </p>
                                 </div>
                             )}
