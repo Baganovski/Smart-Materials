@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 import SquareIcon from './SquareIcon';
@@ -22,7 +23,7 @@ import QuestionMarkCircleIcon from './QuestionMarkCircleIcon';
 import CurrencyDollarIcon from './CurrencyDollarIcon';
 
 // Define a map from string names to icon components
-const iconMap: { [key: string]: React.FC<React.SVGProps<SVGSVGElement>> } = {
+const iconMap: { [key: string]: React.FC<any> } = {
   SquareIcon,
   CheckSquareIcon,
   TruckIcon,
