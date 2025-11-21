@@ -6,12 +6,14 @@ import CheckSquareIcon from './icons/CheckSquareIcon';
 
 interface VerifyEmailPageProps {
   user: any; // Firebase user object
+  onCheckVerification: () => Promise<void>;
 }
 
-const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user }) => {
+const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user, onCheckVerification }) => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [isResending, setIsResending] = useState(false);
+    const [isChecking, setIsChecking] = useState(false);
 
     const handleResend = async () => {
         setMessage('');
@@ -27,8 +29,20 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user }) => {
         }
     };
 
-    const handleCheckAgain = () => {
-        window.location.reload();
+    const handleCheckAgain = async () => {
+        setIsChecking(true);
+        setError('');
+        try {
+            await onCheckVerification();
+            // If successful, the parent component will unmount this page, so no need to reset loading
+        } catch (err: any) {
+            if (err.message === "Not verified") {
+                setError("We couldn't verify your email yet. Please check your inbox and click the link.");
+            } else {
+                setError("Something went wrong. Please try refreshing the page.");
+            }
+            setIsChecking(false);
+        }
     };
 
     return (
@@ -60,10 +74,11 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user }) => {
                         <div className="flex flex-col gap-4">
                              <button
                                onClick={handleCheckAgain}
-                               className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-full shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200 flex items-center justify-center gap-2"
+                               disabled={isChecking}
+                               className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-full shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                               <ArrowPathIcon className="w-6 h-6" />
-                               I've Verified My Email
+                               <ArrowPathIcon className={`w-6 h-6 ${isChecking ? 'animate-spin' : ''}`} />
+                               {isChecking ? 'Checking...' : "I've Verified My Email"}
                             </button>
                             <button
                                onClick={handleResend}

@@ -515,16 +515,16 @@ const handleUpdateItemName = (id: string, newName: string) => {
       </header>
       
       {isPrintModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-          <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">Export List</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in p-4">
+          <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-md h-[75vh] flex flex-col">
+            <h2 className="text-2xl font-bold mb-4 flex-shrink-0">Export List</h2>
             <textarea
               readOnly
-              className="w-full h-64 bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-y"
+              className="w-full flex-grow bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-none"
               value={printableList}
               aria-label="Printable item list"
             />
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 flex-shrink-0">
               <button onClick={() => setIsPrintModalOpen(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">Close</button>
               <button onClick={handleCopyToClipboard} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-full transition-colors flex items-center gap-2 w-28 justify-center">
                 <ClipboardIcon className="w-5 h-5" />

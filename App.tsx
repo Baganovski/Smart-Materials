@@ -175,6 +175,68 @@ const App: React.FC = () => {
         setLoading(false);
     }
   }, []);
+  
+  // Abstracted logic to check for guest data and either trigger migration or finalize login
+  const handlePostLogin = useCallback(async (currentUser: any) => {
+    // Check for Lists
+    const localListsStr = localStorage.getItem('guest_lists');
+    let hasGuestLists = false;
+    let localLists: ShoppingList[] = [];
+    if (localListsStr) {
+            try {
+            localLists = JSON.parse(localListsStr);
+            if (localLists.length > 0) hasGuestLists = true;
+            } catch (e) {
+            console.error("Error parsing local lists", e);
+            }
+    }
+
+    // Check for Settings/Templates
+    const localSettingsStr = localStorage.getItem('guest_settings');
+    let hasGuestSettings = false;
+    let localSettings: UserSettings | null = null;
+    if (localSettingsStr) {
+        try {
+            const parsed = JSON.parse(localSettingsStr);
+            // Check if they actually differ from defaults (simple check: do they have groups?)
+            if (parsed.statusGroups && parsed.statusGroups.length > 0) {
+                localSettings = parsed;
+                // Ideally we'd check if it's just the default, but for now, if it exists in LS, we assume it might be custom
+                hasGuestSettings = true;
+            }
+        } catch(e) {
+            console.error("Error parsing local settings", e);
+        }
+    }
+
+    if (hasGuestLists || hasGuestSettings) {
+        // Pause login and ask user what to do
+        setPendingLocalLists(localLists);
+        setPendingLocalSettings(localSettings);
+        setPendingMigrationUser(currentUser);
+        setLoading(false); 
+    } else {
+        // No guest data, proceed immediately
+        await finalizeLogin(currentUser);
+    }
+  }, [finalizeLogin]);
+
+  // New function to check verification without reloading the page
+  const handleCheckVerification = async () => {
+      if (!user) return;
+      try {
+          await user.reload();
+          const freshUser = auth.currentUser;
+          if (freshUser && freshUser.emailVerified) {
+              setNeedsVerification(false);
+              await handlePostLogin(freshUser);
+          } else {
+              throw new Error("Not verified");
+          }
+      } catch (e) {
+          throw e;
+      }
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -189,50 +251,9 @@ const App: React.FC = () => {
         }
         
         setNeedsVerification(false);
-        // User just signed in and is verified
         setShowLogin(false);
 
-        // Check for Lists
-        const localListsStr = localStorage.getItem('guest_lists');
-        let hasGuestLists = false;
-        let localLists: ShoppingList[] = [];
-        if (localListsStr) {
-             try {
-                localLists = JSON.parse(localListsStr);
-                if (localLists.length > 0) hasGuestLists = true;
-             } catch (e) {
-                console.error("Error parsing local lists", e);
-             }
-        }
-
-        // Check for Settings/Templates
-        const localSettingsStr = localStorage.getItem('guest_settings');
-        let hasGuestSettings = false;
-        let localSettings: UserSettings | null = null;
-        if (localSettingsStr) {
-            try {
-                const parsed = JSON.parse(localSettingsStr);
-                // Check if they actually differ from defaults (simple check: do they have groups?)
-                if (parsed.statusGroups && parsed.statusGroups.length > 0) {
-                    localSettings = parsed;
-                    // Ideally we'd check if it's just the default, but for now, if it exists in LS, we assume it might be custom
-                    hasGuestSettings = true;
-                }
-            } catch(e) {
-                console.error("Error parsing local settings", e);
-            }
-        }
-
-        if (hasGuestLists || hasGuestSettings) {
-            // Pause login and ask user what to do
-            setPendingLocalLists(localLists);
-            setPendingLocalSettings(localSettings);
-            setPendingMigrationUser(currentUser);
-            setLoading(false); 
-        } else {
-            // No guest data, proceed immediately
-            await finalizeLogin(currentUser);
-        }
+        await handlePostLogin(currentUser);
 
       } else {
         // User is signed out
@@ -242,7 +263,7 @@ const App: React.FC = () => {
       }
     });
     return () => unsubscribe();
-  }, [finalizeLogin]);
+  }, [handlePostLogin]);
 
   const handleMergeData = async () => {
     if (!pendingMigrationUser) return;
@@ -485,7 +506,7 @@ const App: React.FC = () => {
   }
 
   if (needsVerification && user) {
-    return <VerifyEmailPage user={user} />;
+    return <VerifyEmailPage user={user} onCheckVerification={handleCheckVerification} />;
   }
 
   // Modal for migrating guest data

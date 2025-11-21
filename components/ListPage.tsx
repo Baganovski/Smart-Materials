@@ -249,6 +249,16 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                   <ListBulletIcon className="w-4 h-4" />
                   Item History
                 </button>
+                <a
+                  href="https://monzo.me/josephshaw1?h=m4-M5r"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20 flex items-center gap-2 text-pencil no-underline"
+                  onClick={() => setIsUserMenuOpen(false)}
+                >
+                  <span className="text-lg leading-none" role="img" aria-label="coffee">☕</span>
+                  Buy me a coffee
+                </a>
                 <button 
                   onClick={() => { setIsAccountSettingsOpen(true); setIsUserMenuOpen(false); }} 
                   className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20 flex items-center gap-2"
