@@ -13,6 +13,23 @@ import TrashIcon from './components/icons/TrashIcon';
 import XMarkIcon from './components/icons/XMarkIcon';
 import SlidersIcon from './components/icons/SlidersIcon';
 
+// Helper for deep comparison to avoid merging identical templates
+const isDeepEqual = (obj1: any, obj2: any): boolean => {
+  if (obj1 === obj2) return true;
+  if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) return false;
+  
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  
+  if (keys1.length !== keys2.length) return false;
+  
+  for (const key of keys1) {
+    if (!keys2.includes(key) || !isDeepEqual(obj1[key], obj2[key])) return false;
+  }
+  
+  return true;
+};
+
 const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,26 +73,41 @@ const App: React.FC = () => {
             let settingsChanged = false;
 
             localSettings.statusGroups.forEach((guestGroup) => {
-                const conflict = newGroups.find(g => g.id === guestGroup.id);
+                const conflictIndex = newGroups.findIndex(g => g.id === guestGroup.id);
                 
-                if (conflict) {
-                    // ID exists. Check if content is different.
-                    // Simple JSON stringify comparison for now.
-                    if (JSON.stringify(conflict) !== JSON.stringify(guestGroup)) {
-                        // Content is different. We must save the guest one, but rename/re-ID it.
-                        const newId = `${guestGroup.id}_merged_${Date.now()}`;
-                        groupIdMap[guestGroup.id] = newId; // Map old guest ID to new Cloud ID
+                if (conflictIndex > -1) {
+                    const cloudGroup = newGroups[conflictIndex];
+                    
+                    // Use deep equality check instead of JSON.stringify for reliability
+                    if (!isDeepEqual(cloudGroup, guestGroup)) {
+                        // Content is different. 
                         
-                        newGroups.push({
-                            ...guestGroup,
-                            id: newId,
-                            name: `${guestGroup.name} (Merged)`
-                        });
-                        settingsChanged = true;
+                        // CHECK: Is the cloud version just a standard unmodified default?
+                        // If so, we should overwrite it with the guest version (which might be an older default or a custom one)
+                        // rather than creating a duplicate "Merged" entry.
+                        const defaultGroups = getDefaultStatusGroups();
+                        const defaultVersion = defaultGroups.find(g => g.id === cloudGroup.id);
+                        const isCloudStandard = defaultVersion && isDeepEqual(cloudGroup, defaultVersion);
+
+                        if (isCloudStandard) {
+                             // Cloud is standard/default. We can safely overwrite it with the guest version.
+                             newGroups[conflictIndex] = guestGroup;
+                             settingsChanged = true;
+                        } else {
+                            // Cloud is custom/different AND Guest is different. 
+                            // We must save the guest one, but rename/re-ID it to avoid losing cloud data.
+                            const newId = `${guestGroup.id}_merged_${Date.now()}`;
+                            groupIdMap[guestGroup.id] = newId; // Map old guest ID to new Cloud ID
+                            
+                            newGroups.push({
+                                ...guestGroup,
+                                id: newId,
+                                name: `${guestGroup.name} (Merged)`
+                            });
+                            settingsChanged = true;
+                        }
                     } else {
-                        // Content is identical. No action needed, map identity.
-                        // Explicitly mapping isn't strictly necessary if we use original ID, 
-                        // but good for clarity if we needed to.
+                        // Content is identical. No action needed.
                     }
                 } else {
                     // No ID conflict, just add the group

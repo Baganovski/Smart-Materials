@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShoppingList } from '../types';
 
@@ -26,9 +27,9 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
     return `rotate-[${degrees}deg]`;
   });
 
-  const tileClasses = `relative bg-sticky-note cursor-grab transition-all duration-300 group transform md:hover:scale-105`;
+  const tileClasses = `relative bg-sticky-note cursor-grab transition-all duration-300 group transform md:hover:scale-105 shadow-sketchy`;
   // When dragging, turn the tile into a dashed placeholder and reset transforms.
-  const draggingClasses = `!bg-paper border-2 border-dashed !rotate-0 !scale-100`;
+  const draggingClasses = `!bg-paper border-2 border-dashed !rotate-0 !scale-100 !shadow-none`;
   
   // Fade out the content when dragging
   const contentClasses = `transition-opacity duration-200 ${isDragging ? 'opacity-0' : 'opacity-100'}`;
@@ -43,8 +44,8 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       onDragEnd={onDragEnd}
       className={`${tileClasses} ${rotationClass} ${isDragging ? draggingClasses : ''}`}
     >
-      {/* Adhesive strip */}
-      <div className={`absolute top-0 left-0 right-0 h-8 bg-sticky-note-top ${contentClasses}`} />
+      {/* Adhesive strip - Color removed as requested */}
+      <div className={`absolute top-0 left-0 right-0 h-8 ${contentClasses}`} />
       
       <div className={`pt-10 px-6 pb-6 ${contentClasses}`}>
         <h3 className="text-2xl font-bold text-pencil truncate mb-2 leading-normal">{list.name}</h3>
