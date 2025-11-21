@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
-import { ShoppingList } from '../types';
+import { ShoppingList, UserSettings } from '../types';
 
 interface ListItemTileProps {
   list: ShoppingList;
+  userSettings: UserSettings | null;
   isDragging: boolean;
   onClick: () => void;
   onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
@@ -13,6 +14,7 @@ interface ListItemTileProps {
 
 const ListItemTile: React.FC<ListItemTileProps> = ({ 
   list, 
+  userSettings,
   isDragging,
   onClick, 
   onDragStart, 
@@ -20,6 +22,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
   onDragEnd,
 }) => {
   const itemCount = list.items?.length || 0;
+  const styleName = userSettings?.statusGroups?.find(g => g.id === list.statusGroupId)?.name;
   
   // Generate a random rotation once per component instance for a stable layout.
   const [rotationClass] = useState(() => {
@@ -44,14 +47,20 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       onDragEnd={onDragEnd}
       className={`${tileClasses} ${rotationClass} ${isDragging ? draggingClasses : ''}`}
     >
-      {/* Adhesive strip - Color removed as requested */}
-      <div className={`absolute top-0 left-0 right-0 h-8 ${contentClasses}`} />
-      
-      <div className={`pt-10 px-6 pb-6 ${contentClasses}`}>
-        <h3 className="text-2xl font-bold text-pencil truncate mb-2 leading-normal">{list.name}</h3>
-        <p className="text-pencil-light text-base mb-4">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'}
-        </p>
+      <div className={`p-5 flex flex-col justify-between h-full ${contentClasses}`}>
+        <div>
+            <h3 className="text-2xl font-bold text-pencil truncate mb-1 leading-tight">{list.name}</h3>
+            <p className="text-pencil-light text-sm">
+              {itemCount} {itemCount === 1 ? 'item' : 'items'}
+            </p>
+        </div>
+        {styleName && (
+           <div className="mt-4">
+               <span className="text-[10px] font-bold text-pencil/40 uppercase tracking-wider bg-black/5 px-2 py-1 rounded-md inline-block">
+                  {styleName}
+               </span>
+           </div>
+        )}
       </div>
     </div>
   );
