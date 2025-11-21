@@ -13,6 +13,7 @@ import HistoryModal from './HistoryModal';
 import UserIcon from './icons/UserIcon';
 import CogIcon from './icons/CogIcon';
 import AccountSettingsModal from './AccountSettingsModal';
+import CheckSquareIcon from './icons/CheckSquareIcon';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -205,7 +206,10 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
-        <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Listfully</h1>
+        <div className="flex items-center gap-3">
+            <CheckSquareIcon className="w-10 h-10 sm:w-12 sm:h-12 text-ink" strokeWidth={3} />
+            <h1 className="text-5xl sm:text-6xl font-bold text-pencil">Listfully</h1>
+        </div>
         <div className="flex items-center gap-3">
            <button
             onClick={() => setIsCustomizeModalOpen(true)}

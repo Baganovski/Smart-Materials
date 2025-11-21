@@ -6,7 +6,7 @@ export const getDefaultStatusGroups = (): StatusGroup[] => [
     name: 'Tick List',
     statuses: [
       { id: 'listed', name: 'Listed', icon: 'SquareIcon', color: '#333333' },
-      { id: 'ticked', name: 'Ticked', icon: 'CheckSquareIcon', color: '#22c55e' },
+      { id: 'ticked', name: 'Ticked', icon: 'CheckSquareIcon', color: '#fcd34d' },
     ]
   },
   {

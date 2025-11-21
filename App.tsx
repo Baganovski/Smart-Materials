@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingList, UserSettings } from './types';
+import { ShoppingList, UserSettings, StatusGroup } from './types';
 import ListPage from './components/ListPage';
 import ShoppingListPage from './components/ShoppingListPage';
 import LoginPage from './components/LoginPage';
@@ -11,6 +11,7 @@ import { getDefaultStatusGroups } from './utils/defaults';
 import ArrowPathIcon from './components/icons/ArrowPathIcon';
 import TrashIcon from './components/icons/TrashIcon';
 import XMarkIcon from './components/icons/XMarkIcon';
+import SlidersIcon from './components/icons/SlidersIcon';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<any | null>(null);
@@ -24,45 +25,105 @@ const App: React.FC = () => {
   // State to handle the migration decision flow
   const [pendingMigrationUser, setPendingMigrationUser] = useState<any | null>(null);
   const [pendingLocalLists, setPendingLocalLists] = useState<ShoppingList[]>([]);
+  const [pendingLocalSettings, setPendingLocalSettings] = useState<UserSettings | null>(null);
 
-  // Helper to migrate guest lists to the authenticated account
+  // Helper to migrate guest lists and settings to the authenticated account
   const migrateGuestData = async (uid: string) => {
     const localListsStr = localStorage.getItem('guest_lists');
-    if (!localListsStr) return;
+    const localSettingsStr = localStorage.getItem('guest_settings');
+    
+    let groupIdMap: Record<string, string> = {};
 
     try {
-      const localLists: ShoppingList[] = JSON.parse(localListsStr);
-      if (localLists.length === 0) return;
-
-      console.log(`Migrating ${localLists.length} lists for user ${uid}...`);
-
-      const batch = db.batch();
-      
-      localLists.forEach((list) => {
-        // Create a new document reference
-        const newDocRef = db.collection('lists').doc();
+      // 1. Migrate Settings first to handle Template IDs
+      if (localSettingsStr) {
+        const localSettings: UserSettings = JSON.parse(localSettingsStr);
         
-        // Prepare the data, ensuring the UID is updated to the logged-in user
-        // and timestamps are converted to server timestamps
-        const listData = {
-          ...list,
-          id: newDocRef.id, // Use the new Firestore ID
-          uid: uid,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          // Ensure items and statusGroupId exist
-          items: list.items || [],
-          statusGroupId: list.statusGroupId || 'default',
-        };
+        // Only migrate if there are actual status groups
+        if (localSettings.statusGroups && localSettings.statusGroups.length > 0) {
+            const settingsRef = db.collection('settings').doc(uid);
+            const doc = await settingsRef.get();
+            
+            // Get current cloud settings or defaults
+            let currentSettings: UserSettings = doc.exists 
+                ? (doc.data() as UserSettings) 
+                : { statusGroups: getDefaultStatusGroups() };
+            
+            // If current settings is empty/malformed for some reason, force defaults
+            if (!currentSettings.statusGroups) currentSettings.statusGroups = getDefaultStatusGroups();
 
-        batch.set(newDocRef, listData);
-      });
+            let newGroups = [...currentSettings.statusGroups];
+            let settingsChanged = false;
 
-      await batch.commit();
+            localSettings.statusGroups.forEach((guestGroup) => {
+                const conflict = newGroups.find(g => g.id === guestGroup.id);
+                
+                if (conflict) {
+                    // ID exists. Check if content is different.
+                    // Simple JSON stringify comparison for now.
+                    if (JSON.stringify(conflict) !== JSON.stringify(guestGroup)) {
+                        // Content is different. We must save the guest one, but rename/re-ID it.
+                        const newId = `${guestGroup.id}_merged_${Date.now()}`;
+                        groupIdMap[guestGroup.id] = newId; // Map old guest ID to new Cloud ID
+                        
+                        newGroups.push({
+                            ...guestGroup,
+                            id: newId,
+                            name: `${guestGroup.name} (Merged)`
+                        });
+                        settingsChanged = true;
+                    } else {
+                        // Content is identical. No action needed, map identity.
+                        // Explicitly mapping isn't strictly necessary if we use original ID, 
+                        // but good for clarity if we needed to.
+                    }
+                } else {
+                    // No ID conflict, just add the group
+                    newGroups.push(guestGroup);
+                    settingsChanged = true;
+                }
+            });
+
+            if (settingsChanged) {
+                await settingsRef.set({ statusGroups: newGroups });
+                console.log('Merged guest templates into account.');
+            }
+        }
+      }
+
+      // 2. Migrate Lists
+      if (localListsStr) {
+        const localLists: ShoppingList[] = JSON.parse(localListsStr);
+        if (localLists.length > 0) {
+            console.log(`Migrating ${localLists.length} lists for user ${uid}...`);
+            const batch = db.batch();
+            
+            localLists.forEach((list) => {
+                const newDocRef = db.collection('lists').doc();
+                
+                // Check if the list's statusGroupId needs to be remapped (because we renamed a conflicting template)
+                const finalStatusGroupId = groupIdMap[list.statusGroupId] || list.statusGroupId || 'default';
+
+                const listData = {
+                    ...list,
+                    id: newDocRef.id,
+                    uid: uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    items: list.items || [],
+                    statusGroupId: finalStatusGroupId,
+                };
+                batch.set(newDocRef, listData);
+            });
+
+            await batch.commit();
+        }
+      }
       
-      // Clear guest lists after successful migration
+      // Clear guest data
       localStorage.removeItem('guest_lists');
-      localStorage.removeItem('guest_settings'); // Also clear settings if we merged
-      console.log('Migration successful, local guest lists cleared.');
+      localStorage.removeItem('guest_settings');
+      console.log('Migration successful, local guest data cleared.');
+
     } catch (error) {
       console.error("Error migrating guest data:", error);
     }
@@ -99,24 +160,43 @@ const App: React.FC = () => {
         // User just signed in and is verified
         setShowLogin(false);
 
-        // Check if there is local data to migrate
+        // Check for Lists
         const localListsStr = localStorage.getItem('guest_lists');
-        let hasGuestData = false;
+        let hasGuestLists = false;
         let localLists: ShoppingList[] = [];
         if (localListsStr) {
              try {
                 localLists = JSON.parse(localListsStr);
-                if (localLists.length > 0) hasGuestData = true;
+                if (localLists.length > 0) hasGuestLists = true;
              } catch (e) {
                 console.error("Error parsing local lists", e);
              }
         }
 
-        if (hasGuestData) {
+        // Check for Settings/Templates
+        const localSettingsStr = localStorage.getItem('guest_settings');
+        let hasGuestSettings = false;
+        let localSettings: UserSettings | null = null;
+        if (localSettingsStr) {
+            try {
+                const parsed = JSON.parse(localSettingsStr);
+                // Check if they actually differ from defaults (simple check: do they have groups?)
+                if (parsed.statusGroups && parsed.statusGroups.length > 0) {
+                    localSettings = parsed;
+                    // Ideally we'd check if it's just the default, but for now, if it exists in LS, we assume it might be custom
+                    hasGuestSettings = true;
+                }
+            } catch(e) {
+                console.error("Error parsing local settings", e);
+            }
+        }
+
+        if (hasGuestLists || hasGuestSettings) {
             // Pause login and ask user what to do
             setPendingLocalLists(localLists);
+            setPendingLocalSettings(localSettings);
             setPendingMigrationUser(currentUser);
-            setLoading(false); // Stop loading so we can show the modal
+            setLoading(false); 
         } else {
             // No guest data, proceed immediately
             await finalizeLogin(currentUser);
@@ -139,6 +219,7 @@ const App: React.FC = () => {
     await finalizeLogin(pendingMigrationUser);
     setPendingMigrationUser(null);
     setPendingLocalLists([]);
+    setPendingLocalSettings(null);
   };
 
   const handleDiscardData = async () => {
@@ -149,6 +230,7 @@ const App: React.FC = () => {
     await finalizeLogin(pendingMigrationUser);
     setPendingMigrationUser(null);
     setPendingLocalLists([]);
+    setPendingLocalSettings(null);
   };
 
   const handleCancelMigration = async () => {
@@ -156,6 +238,7 @@ const App: React.FC = () => {
     await auth.signOut();
     setPendingMigrationUser(null);
     setPendingLocalLists([]);
+    setPendingLocalSettings(null);
   };
 
   useEffect(() => {
@@ -375,6 +458,9 @@ const App: React.FC = () => {
 
   // Modal for migrating guest data
   if (pendingMigrationUser) {
+    const foundTemplatesCount = pendingLocalSettings?.statusGroups?.length || 0;
+    const foundListsCount = pendingLocalLists.length;
+    
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in p-4">
             <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-md relative">
@@ -391,18 +477,40 @@ const App: React.FC = () => {
                         <ArrowPathIcon className="w-8 h-8 text-ink"/>
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold mb-2">Sync Guest Lists?</h2>
-                        <p className="text-pencil-light mb-2">
-                            We found {pendingLocalLists.length} list{pendingLocalLists.length === 1 ? '' : 's'} on this device:
+                        <h2 className="text-2xl font-bold mb-2">Found Existing Data</h2>
+                        <p className="text-pencil-light mb-3">
+                            We found the following on this device:
                         </p>
-                         <ul className="list-disc list-inside mb-4 text-sm text-pencil font-bold pl-2">
-                            {pendingLocalLists.slice(0, 3).map(l => (
-                                <li key={l.id} className="truncate">{l.name}</li>
-                            ))}
-                            {pendingLocalLists.length > 3 && <li>and {pendingLocalLists.length - 3} more...</li>}
-                        </ul>
+                        <div className="bg-pencil/5 rounded-xl p-3 mb-4">
+                            {foundListsCount > 0 && (
+                                <div className="mb-2 last:mb-0">
+                                    <p className="font-bold text-pencil flex items-center gap-2">
+                                        <span className="bg-ink text-white text-xs px-2 py-0.5 rounded-full">{foundListsCount}</span> 
+                                        List{foundListsCount !== 1 ? 's' : ''}
+                                    </p>
+                                    <ul className="list-disc list-inside ml-2 text-sm text-pencil-light mt-1">
+                                        {pendingLocalLists.slice(0, 2).map(l => (
+                                            <li key={l.id} className="truncate">{l.name}</li>
+                                        ))}
+                                        {foundListsCount > 2 && <li>and {foundListsCount - 2} more...</li>}
+                                    </ul>
+                                </div>
+                            )}
+                            
+                            {foundTemplatesCount > 0 && (
+                                <div className="mt-2 border-t border-pencil/10 pt-2">
+                                    <p className="font-bold text-pencil flex items-center gap-2">
+                                        <SlidersIcon className="w-4 h-4" />
+                                        <span>Custom Templates</span>
+                                    </p>
+                                    <p className="text-xs text-pencil-light ml-6">
+                                        Your custom list templates will be merged.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         <p className="text-pencil-light text-sm">
-                            What would you like to do with them?
+                            Do you want to merge this data into your account or start fresh?
                         </p>
                     </div>
                 </div>
@@ -414,7 +522,7 @@ const App: React.FC = () => {
                          <div className="flex-shrink-0"><ArrowPathIcon className="w-6 h-6" /></div>
                          <div className="flex flex-col items-start">
                             <span>Merge into Account</span>
-                            <span className="text-xs font-normal opacity-80">Keep these lists and add them to my account</span>
+                            <span className="text-xs font-normal opacity-80">Save lists and templates to account</span>
                         </div>
                     </button>
                     <button 
@@ -423,8 +531,8 @@ const App: React.FC = () => {
                     >
                          <div className="flex-shrink-0"><TrashIcon className="w-6 h-6" /></div>
                          <div className="flex flex-col items-start">
-                            <span>Discard Guest Lists</span>
-                            <span className="text-xs font-normal opacity-80">Delete these lists and open my account</span>
+                            <span>Discard Guest Data</span>
+                            <span className="text-xs font-normal opacity-80">Delete local data and open account</span>
                         </div>
                     </button>
                 </div>

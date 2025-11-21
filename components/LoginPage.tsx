@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
 import XMarkIcon from './icons/XMarkIcon';
+import CheckSquareIcon from './icons/CheckSquareIcon';
 
 type View = 'signIn' | 'signUp' | 'forgotPassword';
 
@@ -212,7 +213,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                     <XMarkIcon className="w-10 h-10" />
                 </button>
             )}
-            <h1 className="text-6xl sm:text-7xl font-bold text-pencil mb-4">Listfully</h1>
+            <div className="flex items-center gap-3 mb-4">
+                <CheckSquareIcon className="w-12 h-12 sm:w-16 sm:h-16 text-ink" strokeWidth={2.5} />
+                <h1 className="text-6xl sm:text-7xl font-bold text-pencil">Listfully</h1>
+            </div>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
                 {getPageTitle()}
             </p>
