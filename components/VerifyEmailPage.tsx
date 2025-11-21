@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
 import ArrowPathIcon from './icons/ArrowPathIcon';
-import CheckSquareIcon from './icons/CheckSquareIcon';
+import AppLogoIcon from './icons/AppLogoIcon';
 
 interface VerifyEmailPageProps {
   user: any; // Firebase user object
@@ -48,7 +48,7 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user, onCheckVerifica
     return (
         <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
             <div className="flex items-center gap-3 mb-4">
-                <CheckSquareIcon className="w-12 h-12 sm:w-16 sm:h-16 text-ink" strokeWidth={2.5} tickColor="#333333" />
+                <AppLogoIcon className="w-12 h-12 sm:w-16 sm:h-16" />
                 <h1 className="text-6xl sm:text-7xl font-bold text-pencil">Listfully</h1>
             </div>
             <p className="text-xl text-pencil-light max-w-2xl mb-12">
