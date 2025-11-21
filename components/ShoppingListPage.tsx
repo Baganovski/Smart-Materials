@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ShoppingList, ShoppingListItem, UserSettings, StatusGroup } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
@@ -405,7 +406,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="mb-6">
         <div className="flex items-center mb-4">
-            <button onClick={onBack} className="mr-4 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper" aria-label="Go back">
+            <button onClick={onBack} className="mr-4 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper" aria-label="Go back">
                 <ChevronLeftIcon className="w-8 h-8" />
             </button>
             <div className="flex-grow min-w-0">
@@ -415,7 +416,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                         defaultValue={list.name}
                         autoFocus
                         onFocus={(e) => e.target.select()}
-                        className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-md text-4xl sm:text-5xl font-bold focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                        className="w-full bg-highlighter text-pencil p-1 -m-1 rounded-xl text-4xl sm:text-5xl font-bold focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 handleUpdateListName((e.target as HTMLInputElement).value);
@@ -432,7 +433,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 ) : (
                     <h1
                         onClick={() => setIsEditingTitle(true)}
-                        className="group flex items-center gap-2 text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter -m-1 rounded-md transition-colors border-2 border-transparent"
+                        className="group flex items-center gap-2 text-4xl sm:text-5xl font-bold cursor-pointer md:hover:bg-highlighter -m-1 rounded-xl transition-colors border-2 border-transparent"
                         title="Click to rename"
                     >
                         <span className="truncate inline-block pt-3 px-1 pb-3">{list.name}</span>
@@ -446,11 +447,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
             <div className="flex items-center gap-4">
               <span className="text-pencil-light">{(list.items || []).length} {(list.items || []).length === 1 ? 'item' : 'items'}</span>
               <div className="relative" ref={groupMenuRef}>
-                  <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-md px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
+                  <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-full px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
                       <span className="truncate" title={activeGroup.name}>{activeGroup.name}</span>
                       <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
                   </button>
-                  <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                  <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                       {userSettings.statusGroups.map(group => (
                           <button
                               key={group.id}
@@ -474,14 +475,14 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <div className="relative" ref={sortMenuRef}>
                     <button
                         onClick={() => setIsSortMenuOpen(prev => !prev)}
-                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                         aria-label="Sort items"
                         aria-haspopup="true"
                         aria-expanded={isSortMenuOpen}
                     >
                         <ArrowsUpDownIcon className="w-6 h-6"/>
                     </button>
-                    <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                    <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                         <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
                         {(['custom', 'a-z', 'z-a', 'status'] as SortOption[]).map(option => {
                             const labels: Record<SortOption, string> = {
@@ -504,7 +505,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 </div>
                 <button
                     onClick={() => setIsPrintModalOpen(true)}
-                    className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                    className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                     aria-label="Export list"
                 >
                     <ArrowUpOnSquareIcon className="w-7 h-7" />
@@ -515,17 +516,17 @@ const handleUpdateItemName = (id: string, newName: string) => {
       
       {isPrintModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-          <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-md">
+          <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-md">
             <h2 className="text-2xl font-bold mb-4">Export List</h2>
             <textarea
               readOnly
-              className="w-full h-64 bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-y"
+              className="w-full h-64 bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-y"
               value={printableList}
               aria-label="Printable item list"
             />
             <div className="flex justify-end gap-3">
-              <button onClick={() => setIsPrintModalOpen(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Close</button>
-              <button onClick={handleCopyToClipboard} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors flex items-center gap-2 w-28 justify-center">
+              <button onClick={() => setIsPrintModalOpen(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">Close</button>
+              <button onClick={handleCopyToClipboard} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-full transition-colors flex items-center gap-2 w-28 justify-center">
                 <ClipboardIcon className="w-5 h-5" />
                 <span>{copyButtonText}</span>
               </button>
@@ -551,7 +552,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
               onChange={(e) => setNewItemQty(e.target.value)}
               placeholder="Qty"
               min="1"
-              className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+              className="w-full bg-paper p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
               aria-label="Quantity"
           />
           <input
@@ -559,20 +560,20 @@ const handleUpdateItemName = (id: string, newName: string) => {
             value={newItemName}
             onChange={handleNewItemNameChange}
             placeholder="Add a new item..."
-            className="w-full bg-paper p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+            className="w-full bg-paper p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
             aria-label="New item name"
             autoComplete="off"
           />
           <button 
             type="submit" 
-            className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink" 
+            className="bg-ink md:hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink" 
             aria-label="Add item"
           >
             +
           </button>
         </form>
         {suggestions.length > 0 && (
-            <div className="absolute top-full -mt-2 w-full bg-paper border-2 border-pencil rounded-md shadow-sketchy z-10 max-h-48 overflow-y-auto">
+            <div className="absolute top-full -mt-2 w-full bg-paper border-2 border-pencil rounded-2xl shadow-sketchy z-10 max-h-48 overflow-y-auto">
                 <ul>
                     {suggestions.map(suggestion => (
                         <li key={suggestion}>
@@ -637,7 +638,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                                     min="1"
                                     autoFocus
                                     onFocus={(e) => e.target.select()}
-                                    className="bg-highlighter text-pencil w-20 px-2 py-1 rounded-md text-xl font-bold focus:outline-none focus:ring-2 focus:ring-ink appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-2 border-pencil"
+                                    className="bg-highlighter text-pencil w-20 px-2 py-1 rounded-xl text-xl font-bold focus:outline-none focus:ring-2 focus:ring-ink appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-2 border-pencil"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             handleUpdateItemQuantity(item.id, (e.target as HTMLInputElement).value);
@@ -656,7 +657,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                         ) : (
                             <span
                                 onClick={() => setEditingQuantityItemId(item.id)}
-                                className="font-bold p-1 -ml-1 rounded-md transition-colors cursor-pointer md:hover:bg-highlighter"
+                                className="font-bold p-1 -ml-1 rounded-xl transition-colors cursor-pointer md:hover:bg-highlighter"
                             >
                                 {item.quantity}x
                             </span>
@@ -668,7 +669,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                               defaultValue={item.name}
                               autoFocus
                               onFocus={(e) => e.target.select()}
-                              className="bg-highlighter text-pencil w-full px-2 py-1 rounded-md text-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                              className="bg-highlighter text-pencil w-full px-2 py-1 rounded-xl text-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   handleUpdateItemName(item.id, (e.target as HTMLInputElement).value);
@@ -685,7 +686,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                           ) : (
                             <span 
                               onClick={() => setEditingNameItemId(item.id)}
-                              className="inline-block w-full p-1 -ml-1 rounded-md transition-colors cursor-pointer md:hover:bg-highlighter"
+                              className="inline-block w-full p-1 -ml-1 rounded-xl transition-colors cursor-pointer md:hover:bg-highlighter"
                             >
                               {item.name}
                             </span>
@@ -703,7 +704,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                     }
                   }}
                   onBlur={() => handleBlurDelete(item.id)}
-                  className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-md' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
+                  className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-full' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
                   aria-label={isPendingDelete ? `Confirm delete ${item.name}` : `Delete ${item.name}`}
                 >
                   {isPendingDelete ? <CheckIcon className="w-5 h-5" /> : <TrashIcon className="w-5 h-5" />}
@@ -712,7 +713,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
             </React.Fragment>
           );
         }) : (
-            <div className="text-center py-10 border-2 border-dashed border-pencil/30 rounded-lg">
+            <div className="text-center py-10 border-2 border-dashed border-pencil/30 rounded-2xl">
                 <p className="text-pencil-light text-xl">No items yet. Add one above to start your list.</p>
             </div>
         )}

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ShoppingList, UserSettings } from '../types';
 import ListItemTile from './ListItemTile';
@@ -10,6 +11,8 @@ import ListBulletIcon from './icons/ListBulletIcon';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import HistoryModal from './HistoryModal';
 import UserIcon from './icons/UserIcon';
+import CogIcon from './icons/CogIcon';
+import AccountSettingsModal from './AccountSettingsModal';
 
 interface ListPageProps {
   lists: ShoppingList[];
@@ -31,10 +34,14 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
   const [selectedStatusGroupId, setSelectedStatusGroupId] = useState<string>('');
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
-  const [passwordChangeMessage, setPasswordChangeMessage] = useState('');
+  
+  // State for custom template dropdown
+  const [isTemplateDropdownOpen, setIsTemplateDropdownOpen] = useState(false);
+  const templateDropdownRef = useRef<HTMLDivElement>(null);
   
   // State for drag-to-delete
   const [isDraggingForDelete, setIsDraggingForDelete] = useState(false);
@@ -70,27 +77,22 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
+      if (templateDropdownRef.current && !templateDropdownRef.current.contains(event.target as Node)) {
+        setIsTemplateDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [userMenuRef]);
-
-  useEffect(() => {
-    // When the menu closes, reset the password change message
-    if (!isUserMenuOpen) {
-      // Delay reset slightly to prevent message disappearing during fade-out animation
-      const timer = setTimeout(() => setPasswordChangeMessage(''), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isUserMenuOpen]);
+  }, [userMenuRef, templateDropdownRef]);
 
   useEffect(() => {
     // When the "add list" modal opens, reset the form and set the default workflow
     if (isAdding) {
       setNewListName('');
+      setIsTemplateDropdownOpen(false);
       if (userSettings && userSettings.statusGroups.length > 0) {
         setSelectedStatusGroupId(userSettings.statusGroups[0].id);
       }
@@ -178,12 +180,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
       return;
     }
     
-    // If user is guest (user is null), we construct a simple date string or object locally.
-    // However, App.tsx updateList handles persistence. We just need to pass the new value.
-    // For firestore, it wants a Timestamp usually, but for local updates strings are fine
-    // if the rest of the app handles it. 
-    // To be safe, if user exists, use Firestore Timestamp. If not, use number/Date.
-    
     let newCreatedAt;
     if (user) {
         newCreatedAt = firebase.firestore.Timestamp.fromMillis(newTimestampMs);
@@ -206,18 +202,6 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
     onDeleteAccount();
   };
 
-  const handleChangePassword = async () => {
-    if (user?.email) {
-      try {
-        await auth.sendPasswordResetEmail(user.email);
-        setPasswordChangeMessage('Check your email for a reset link.');
-      } catch (error) {
-        console.error("Error sending password reset email:", error);
-        setPasswordChangeMessage('Error: Failed to send link.');
-      }
-    }
-  };
-
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto pb-48">
       <header className="flex justify-between items-center mb-8 gap-4">
@@ -225,14 +209,14 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         <div className="flex items-center gap-3">
            <button
             onClick={() => setIsCustomizeModalOpen(true)}
-            className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Customize templates"
           >
             <ListBulletIcon className="w-7 h-7" />
           </button>
           <button
             onClick={() => setIsAdding(true)}
-            className="bg-ink md:hover:bg-ink-light text-pencil rounded-md w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+            className="bg-ink md:hover:bg-ink-light text-pencil rounded-full w-12 h-12 flex items-center justify-center text-3xl font-bold transition-transform transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
             aria-label="Add new list"
           >
             +
@@ -242,51 +226,45 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
            <div className="relative" ref={userMenuRef}>
              <button
                 onClick={() => setIsUserMenuOpen(prev => !prev)}
-                className="w-12 h-12 rounded-md border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                className="w-12 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-xl focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                 aria-label="Open user menu"
                 aria-haspopup="true"
                 aria-expanded={isUserMenuOpen}
              >
                 {(user.displayName || user.email)?.[0]?.toUpperCase() ?? 'U'}
              </button>
-             <div className={`absolute top-10 right-0 w-56 bg-paper border-2 border-pencil rounded-md shadow-sketchy transition-opacity duration-200 z-10 ${isUserMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                {passwordChangeMessage ? (
-                  <div className={`p-4 text-center ${passwordChangeMessage.includes('Error') ? 'text-danger' : 'text-pencil-light'}`}>
-                    {passwordChangeMessage}
-                  </div>
-                ) : (
-                  <>
-                    <div className="p-3 border-b border-pencil/20">
-                      <p className="font-bold truncate">{user.displayName || user.email}</p>
-                      <p className="text-sm text-pencil-light truncate">{user.email}</p>
-                    </div>
-                    <button 
-                      onClick={() => { setIsHistoryModalOpen(true); setIsUserMenuOpen(false); }}
-                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors"
-                    >
-                      Item History
-                    </button>
-                    <button 
-                      onClick={handleChangePassword} 
-                      className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20"
-                    >
-                      Change Password
-                    </button>
-                    <button onClick={onSignOut} className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20">Sign Out</button>
-                    <button 
-                      onClick={() => { setIsDeleteAccountConfirmOpen(true); setIsUserMenuOpen(false); }}
-                      className="w-full text-left px-3 py-2 text-danger md:hover:bg-danger/10 transition-colors border-t border-pencil/20"
-                    >
-                      Delete Account
-                    </button>
-                  </>
-                )}
+             <div className={`absolute top-10 right-0 w-56 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 ${isUserMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                <div className="p-3 border-b border-pencil/20">
+                  <p className="font-bold truncate">{user.displayName || user.email}</p>
+                  <p className="text-sm text-pencil-light truncate">{user.email}</p>
+                </div>
+                <button 
+                  onClick={() => { setIsHistoryModalOpen(true); setIsUserMenuOpen(false); }}
+                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors flex items-center gap-2"
+                >
+                  <ListBulletIcon className="w-4 h-4" />
+                  Item History
+                </button>
+                <button 
+                  onClick={() => { setIsAccountSettingsOpen(true); setIsUserMenuOpen(false); }} 
+                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20 flex items-center gap-2"
+                >
+                  <CogIcon className="w-4 h-4" />
+                  Settings
+                </button>
+                <button 
+                  onClick={onSignOut} 
+                  className="w-full text-left px-3 py-2 md:hover:bg-highlighter transition-colors border-t border-pencil/20 rounded-b-xl flex items-center gap-2"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Sign Out
+                </button>
              </div>
            </div>
           ) : (
              <button
                 onClick={onSignIn}
-                className="px-3 h-12 rounded-md border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-lg focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform md:hover:scale-105"
+                className="px-5 h-12 rounded-full border-2 border-pencil cursor-pointer bg-highlighter flex items-center justify-center font-bold text-lg focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper transition-transform transform md:hover:scale-105"
                 aria-label="Sign In"
              >
                 Sign In
@@ -297,7 +275,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
 
       {isAdding && userSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-          <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-sm">
+          <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-sm overflow-visible">
             <h2 className="text-2xl font-bold mb-4">Create New List</h2>
             <div className="mb-4">
                 <label htmlFor="list-name-input" className="block text-sm font-bold text-pencil-light mb-1">List Name</label>
@@ -308,33 +286,53 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                     onChange={(e) => setNewListName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddList()}
                     placeholder="e.g., Kitchen Remodel Project"
-                    className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                    className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                     autoFocus
                 />
             </div>
 
             <div className="mb-6">
                 <label htmlFor="template-select" className="block text-sm font-bold text-pencil-light mb-1">Template</label>
-                <div className="relative">
-                    <select
+                <div className="relative" ref={templateDropdownRef}>
+                    <button
+                        type="button"
                         id="template-select"
-                        value={selectedStatusGroupId}
-                        onChange={(e) => setSelectedStatusGroupId(e.target.value)}
-                        className="w-full bg-paper text-pencil p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil appearance-none pr-10"
+                        onClick={() => setIsTemplateDropdownOpen(!isTemplateDropdownOpen)}
+                        className="w-full bg-paper text-pencil p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil flex justify-between items-center"
                     >
-                        {userSettings.statusGroups.map(group => (
-                            <option key={group.id} value={group.id}>{group.name}</option>
-                        ))}
-                    </select>
-                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-pencil">
-                        <ChevronDownIcon className="w-5 h-5"/>
-                    </div>
+                        <span className="truncate mr-2">
+                            {userSettings.statusGroups.find(g => g.id === selectedStatusGroupId)?.name || 'Select Template'}
+                        </span>
+                        <ChevronDownIcon className="w-5 h-5 flex-shrink-0"/>
+                    </button>
+                    
+                    {isTemplateDropdownOpen && (
+                        <div className="absolute top-full mt-1 left-0 w-full bg-paper border-2 border-pencil rounded-xl shadow-sketchy z-20 overflow-hidden max-h-48 overflow-y-auto">
+                            {userSettings.statusGroups.map(group => (
+                                <button
+                                    key={group.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedStatusGroupId(group.id);
+                                        setIsTemplateDropdownOpen(false);
+                                    }}
+                                    className={`w-full text-left p-3 transition-colors ${
+                                        selectedStatusGroupId === group.id 
+                                        ? 'bg-sticky-note font-bold' 
+                                        : 'hover:bg-highlighter'
+                                    }`}
+                                >
+                                    {group.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
             
             <div className="flex justify-end gap-3">
-              <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
-              <button onClick={handleAddList} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Create</button>
+              <button onClick={() => setIsAdding(false)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">Cancel</button>
+              <button onClick={handleAddList} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-full transition-colors">Create</button>
             </div>
           </div>
         </div>
@@ -357,6 +355,15 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         />
       )}
 
+      {user && (
+        <AccountSettingsModal
+            isOpen={isAccountSettingsOpen}
+            onClose={() => setIsAccountSettingsOpen(false)}
+            user={user}
+            onRequestDeleteAccount={() => setIsDeleteAccountConfirmOpen(true)}
+        />
+      )}
+
       {listsForRender.length > 0 ? (
         <div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -376,7 +383,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 border-2 border-dashed border-pencil/30 rounded-lg px-6">
+        <div className="text-center py-20 border-2 border-dashed border-pencil/30 rounded-2xl px-6">
           <p className="text-pencil-light text-xl">No lists yet. Create one to get started!</p>
           {!user && (
             <p className="text-pencil-light mt-2">
@@ -410,7 +417,9 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
         message="Are you sure? This will permanently delete your account and ALL of your lists. This action cannot be undone."
         onConfirm={handleConfirmAccountDelete}
         onCancel={() => setIsDeleteAccountConfirmOpen(false)}
-        confirmText="Yes, delete my account"
+        confirmText="Delete Account"
+        requireVerification={user?.email}
+        verificationInstruction="Please type your email address to confirm deletion:"
       />
     </div>
   );

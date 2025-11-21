@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { auth } from '../firebase';
 import XMarkIcon from './icons/XMarkIcon';
@@ -33,7 +34,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                 }
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 if (userCredential.user) {
-                    await userCredential.user.sendEmailVerification();
+                    // Attempt to send verification email, but don't block or fail the whole process if it fails
+                    // (e.g. quota limits or network issues). The user is already created.
+                    try {
+                        await userCredential.user.sendEmailVerification();
+                    } catch (emailError) {
+                        console.warn("Failed to send verification email:", emailError);
+                        // We continue anyway so the user can use the app
+                    }
                     // Let the onAuthStateChanged listener in App.tsx handle the next step
                 }
             } else { // 'signIn'
@@ -72,7 +80,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
         }
         try {
             await auth.sendPasswordResetEmail(email);
-            setMessage('Password reset email sent! Check your inbox (and spam folder).');
+            setMessage('Password reset email sent! Please check your inbox and spam folder.');
         } catch (err: any) {
             let friendlyMessage = "Failed to send reset email. Please try again.";
             if (err.code === 'auth/invalid-email') {
@@ -104,14 +112,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address"
                             required
-                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Email Address"
                         />
                         {error && <p className="text-danger text-sm mb-4">{error}</p>}
-                        {message && <p className="text-green-600 text-sm mb-4">{message}</p>}
+                        {message && <p className="text-green-600 text-sm mb-4 font-bold">{message}</p>}
                         <button
                             type="submit"
-                            className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200"
+                            className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-full shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200"
                         >
                             Send Reset Link
                         </button>
@@ -128,7 +136,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             onChange={(e) => setEmail(e.target.value)}
                             placeholder="Email Address"
                             required
-                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Email Address"
                         />
                         <input
@@ -137,7 +145,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Password"
                             required
-                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                            className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Password"
                         />
                         {view === 'signUp' && (
@@ -147,7 +155,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="Confirm Password"
                                 required
-                                className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                                className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                                 aria-label="Confirm Password"
                             />
                         )}
@@ -156,7 +164,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                         
                         <button
                             type="submit"
-                            className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-lg shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200"
+                            className="w-full bg-ink md:hover:bg-ink-light text-pencil text-xl font-bold py-3 px-6 rounded-full shadow-sketchy md:hover:shadow-sketchy-hover transition-all duration-200"
                         >
                             {view === 'signUp' ? 'Create Account' : 'Sign In'}
                         </button>

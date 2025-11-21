@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserSettings, CustomStatus, StatusGroup } from '../types';
 import { getDefaultStatusGroups } from '../utils/defaults';
@@ -148,14 +149,14 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
       <p className="text-pencil-light mb-6">Create and manage groups of statuses for your lists.</p>
       <div className="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2">
         {statusGroups.map(group => (
-            <div key={group.id} className="flex items-center gap-3 p-2 rounded-md bg-paper md:hover:bg-highlighter/50">
+            <div key={group.id} className="flex items-center gap-3 p-2 rounded-xl bg-paper md:hover:bg-highlighter/50">
                 {editingGroupNameId === group.id ? (
                     <input
                         type="text"
                         defaultValue={group.name}
                         autoFocus
                         onFocus={e => e.target.select()}
-                        className="w-full bg-highlighter text-pencil p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                        className="w-full bg-highlighter text-pencil p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                         onBlur={e => {
                             handleUpdateGroupName(group.id, e.target.value.trim() || 'Untitled');
                             setEditingGroupNameId(null);
@@ -177,7 +178,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                         </button>
                     </>
                 )}
-                <button onClick={() => setEditingGroup(group)} className="px-3 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors text-sm whitespace-nowrap">
+                <button onClick={() => setEditingGroup(group)} className="px-3 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors text-sm whitespace-nowrap">
                     Edit Statuses
                 </button>
                 {statusGroups.length > 1 && (
@@ -188,18 +189,18 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
             </div>
         ))}
       </div>
-      <button onClick={handleAddGroup} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
+      <button onClick={handleAddGroup} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-full transition-colors mb-6">
           <PlusIcon className="w-5 h-5" />
           <span>Add Template</span>
       </button>
        <div className="flex justify-between items-center gap-3">
-          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors flex items-center gap-2" title="Reset to default statuses">
+          <button onClick={() => setIsResetConfirmOpen(true)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors flex items-center gap-2" title="Reset to default statuses">
             <ArrowPathIcon className="w-5 h-5"/>
             <span>Reset</span>
           </button>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Save</button>
+            <button onClick={onClose} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">Cancel</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-full transition-colors">Save</button>
           </div>
         </div>
     </>
@@ -226,12 +227,12 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                     draggable
                     onDragStart={(e) => handleDragStart(e, status)}
                     onDragOver={(e) => handleDragOver(e, status)}
-                    className={`flex items-center gap-3 p-2 rounded-md transition-all ${draggedStatus?.id === status.id ? 'bg-highlighter opacity-50' : 'bg-paper md:hover:bg-highlighter/50'}`}
+                    className={`flex items-center gap-3 p-2 rounded-xl transition-all ${draggedStatus?.id === status.id ? 'bg-highlighter opacity-50' : 'bg-paper md:hover:bg-highlighter/50'}`}
                 >
                     <div className="cursor-grab text-pencil/50">
                         <DragHandleIcon className="w-6 h-6" />
                     </div>
-                    <button onClick={() => setIsIconPickerOpen(status.id)} className="p-2 rounded-md md:hover:bg-ink/50" aria-label={`Change icon for ${status.name}`}>
+                    <button onClick={() => setIsIconPickerOpen(status.id)} className="p-2 rounded-full md:hover:bg-ink/50" aria-label={`Change icon for ${status.name}`}>
                        <IconRenderer iconName={status.icon} className="w-6 h-6" style={{ color: status.color }} />
                     </button>
                     <button onClick={() => setIsColorPickerOpen(status.id)} className="w-6 h-6 rounded-full border-2 border-pencil/20" style={{ backgroundColor: status.color }} aria-label={`Change color for ${status.name}`} />
@@ -239,7 +240,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                         type="text"
                         value={status.name}
                         onChange={(e) => handleUpdateStatus(status.id, { name: e.target.value })}
-                        className="w-full bg-transparent text-pencil p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-transparent focus:border-pencil"
+                        className="w-full bg-transparent text-pencil p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-transparent focus:border-pencil"
                     />
                     {editingGroup.statuses.length > 1 && (
                         <button
@@ -262,7 +263,7 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                                     setPendingDeleteStatusId(currentId => currentId === status.id ? null : currentId);
                                 }, 150);
                             }}
-                            className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-md' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
+                            className={`p-2 transition-all ${isPendingDelete ? 'bg-danger text-white transform scale-110 rounded-full' : 'rounded-full md:hover:bg-danger/10 text-pencil-light md:hover:text-danger'}`}
                             aria-label={isPendingDelete ? `Confirm delete status ${status.name}` : `Delete status ${status.name}`}
                         >
                             {isPendingDelete ? <CheckIcon className="w-5 h-5" /> : <TrashIcon className="w-5 h-5" />}
@@ -271,19 +272,19 @@ const CustomizeModal: React.FC<CustomizeModalProps> = ({ isOpen, onClose, settin
                 </div>
             )})}
         </div>
-        <button onClick={handleAddStatus} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-md transition-colors mb-6">
+        <button onClick={handleAddStatus} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-dashed border-pencil/50 rounded-full transition-colors mb-6">
             <PlusIcon className="w-5 h-5" />
             <span>Add Status</span>
         </button>
         <div className="flex justify-end gap-3">
-            <button onClick={() => setEditingGroup(null)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">Done</button>
+            <button onClick={() => setEditingGroup(null)} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">Done</button>
         </div>
     </>
   );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-      <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-lg relative">
+      <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-lg relative">
         {editingGroup ? renderStatusEditor() : renderGroupList()}
 
         {isIconPickerOpen && (

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ALL_ICONS } from '../utils/defaults';
 import IconRenderer from './icons/IconRenderer';
@@ -14,7 +15,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose }) => {
       onClick={onClose}
     >
         <div
-            className="bg-paper p-4 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-xs animate-pop-in"
+            className="bg-paper p-4 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-xs animate-pop-in"
             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the picker
         >
             <h3 className="text-xl font-bold mb-4">Select an Icon</h3>
@@ -23,7 +24,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onSelect, onClose }) => {
                     <button
                         key={iconName}
                         onClick={() => onSelect(iconName)}
-                        className="flex items-center justify-center p-3 bg-highlighter/50 rounded-md md:hover:bg-ink/80 transition-colors"
+                        className="flex items-center justify-center p-3 bg-highlighter/50 rounded-full md:hover:bg-ink/80 transition-colors"
                         aria-label={`Select ${iconName} icon`}
                     >
                         <IconRenderer iconName={iconName} className="w-7 h-7" />

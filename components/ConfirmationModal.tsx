@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
 
 interface ConfirmationModalProps {
@@ -9,6 +10,8 @@ interface ConfirmationModalProps {
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
+  requireVerification?: string;
+  verificationInstruction?: string;
 }
 
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -18,9 +21,21 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   onCancel,
   confirmText = 'Delete',
-  cancelText = 'Cancel'
+  cancelText = 'Cancel',
+  requireVerification,
+  verificationInstruction
 }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setInputValue('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const isConfirmDisabled = requireVerification ? inputValue !== requireVerification : false;
 
   return (
     <div 
@@ -30,19 +45,47 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       aria-labelledby="dialog-title"
       aria-describedby="dialog-description"
     >
-      <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-sm">
-        <div className="flex items-start gap-4">
+      <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-sm">
+        <div className="flex items-start gap-4 mb-4">
           <div className="flex-shrink-0 pt-1">
             <AlertTriangleIcon className="w-8 h-8 text-danger"/>
           </div>
           <div className="flex-grow">
             <h2 id="dialog-title" className="text-2xl font-bold mb-2">{title}</h2>
-            <p id="dialog-description" className="text-pencil-light mb-6">{message}</p>
+            <p id="dialog-description" className="text-pencil-light">{message}</p>
           </div>
         </div>
+
+        {requireVerification && (
+            <div className="mb-6">
+                <label className="block text-sm font-bold text-pencil-light mb-2">
+                    {verificationInstruction || `Type "${requireVerification}" to confirm`}
+                </label>
+                <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={requireVerification}
+                    className="w-full bg-paper p-3 rounded-xl border-2 border-pencil focus:outline-none focus:ring-2 focus:ring-danger placeholder-pencil-light/50 font-bold"
+                    autoComplete="off"
+                    onPaste={(e) => e.preventDefault()}
+                />
+            </div>
+        )}
+
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-md transition-colors">{cancelText}</button>
-          <button onClick={onConfirm} className="px-4 py-2 bg-danger text-white rounded-md transition-transform transform md:hover:scale-105">{confirmText}</button>
+          <button onClick={onCancel} className="px-4 py-2 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full transition-colors">{cancelText}</button>
+          <button 
+            onClick={onConfirm} 
+            disabled={isConfirmDisabled}
+            className={`px-4 py-2 text-white rounded-full transition-transform transform ${
+                isConfirmDisabled 
+                ? 'bg-gray-400 cursor-not-allowed opacity-50' 
+                : 'bg-danger md:hover:scale-105'
+            }`}
+          >
+            {confirmText}
+          </button>
         </div>
       </div>
     </div>

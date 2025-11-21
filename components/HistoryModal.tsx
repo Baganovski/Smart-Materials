@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import * as historyService from '../services/historyService';
 import TrashIcon from './icons/TrashIcon';
@@ -57,7 +58,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user }) =>
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-pop-in">
-      <div className="bg-paper p-6 rounded-lg border-2 border-pencil shadow-sketchy w-full max-w-md flex flex-col" style={{ height: '70vh' }}>
+      <div className="bg-paper p-6 rounded-2xl border-2 border-pencil shadow-sketchy w-full max-w-md flex flex-col" style={{ height: '70vh' }}>
         <h2 className="text-3xl font-bold mb-4">Item History</h2>
         
         <div className="relative mb-4">
@@ -66,7 +67,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user }) =>
                 placeholder="Search history..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 pl-10 rounded-md focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
+                className="w-full bg-highlighter text-pencil placeholder-pencil-light p-3 pl-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
             />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-pencil-light">
                 <SearchIcon className="w-5 h-5" />
@@ -83,7 +84,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user }) =>
           ) : filteredItems.length > 0 ? (
             <ul>
               {filteredItems.map(item => (
-                <li key={item} className="flex items-center justify-between p-2 rounded-md group hover:bg-highlighter/50">
+                <li key={item} className="flex items-center justify-between p-2 rounded-xl group hover:bg-highlighter/50">
                   <span className="text-lg">{capitalize(item)}</span>
                   <button
                     onClick={() => handleDeleteItem(item)}
@@ -103,7 +104,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, user }) =>
         </div>
         
         <div className="flex justify-end mt-6">
-          <button onClick={onClose} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-md transition-colors">Done</button>
+          <button onClick={onClose} className="px-4 py-2 bg-ink md:hover:bg-ink-light text-pencil font-bold rounded-full transition-colors">Done</button>
         </div>
       </div>
     </div>
