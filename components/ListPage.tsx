@@ -316,6 +316,7 @@ const ListPage: React.FC<ListPageProps> = ({ lists, user, userSettings, onAddLis
                     placeholder="e.g., Kitchen Remodel Project"
                     className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                     autoFocus
+                    maxLength={50}
                 />
             </div>
 

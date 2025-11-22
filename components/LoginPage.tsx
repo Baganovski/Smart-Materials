@@ -115,6 +115,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             required
                             className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Email Address"
+                            maxLength={100}
                         />
                         {error && <p className="text-danger text-sm mb-4">{error}</p>}
                         {message && <p className="text-green-600 text-sm mb-4 font-bold">{message}</p>}
@@ -139,6 +140,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             required
                             className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Email Address"
+                            maxLength={100}
                         />
                         <input
                             type="password"
@@ -148,6 +150,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                             required
                             className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                             aria-label="Password"
+                            maxLength={128}
                         />
                         {view === 'signUp' && (
                             <input
@@ -158,6 +161,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose }) => {
                                 required
                                 className="w-full bg-paper text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
                                 aria-label="Confirm Password"
+                                maxLength={128}
                             />
                         )}
                         

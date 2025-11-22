@@ -12,6 +12,8 @@ import ArrowsUpDownIcon from './icons/ArrowsUpDownIcon';
 import ConfirmationModal from './ConfirmationModal';
 import ChevronDownIcon from './icons/ChevronDownIcon';
 import CheckIcon from './icons/CheckIcon';
+import ArrowUturnLeftIcon from './icons/ArrowUturnLeftIcon';
+import ArrowUturnRightIcon from './icons/ArrowUturnRightIcon';
 import * as historyService from '../services/historyService';
 
 
@@ -42,6 +44,10 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
   const transitionalItemsRef = useRef<ShoppingListItem[] | null>(null);
+
+  // Undo/Redo Stacks
+  const [undoStack, setUndoStack] = useState<ShoppingList[]>([]);
+  const [redoStack, setRedoStack] = useState<ShoppingList[]>([]);
 
   // For history suggestions
   const [historyItems, setHistoryItems] = useState<string[]>([]);
@@ -104,6 +110,46 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     transitionalItemsRef.current = null;
   });
 
+  // --- History Management ---
+
+  const performUpdate = useCallback((updatedList: ShoppingList) => {
+    // Push current state to undo stack before updating
+    setUndoStack(prev => [...prev, list]);
+    // Clear redo stack when a new action is performed
+    setRedoStack([]);
+    // Perform the update
+    onUpdateList(updatedList);
+  }, [list, onUpdateList]);
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+
+    const previousState = undoStack[undoStack.length - 1];
+    const newUndoStack = undoStack.slice(0, -1);
+
+    // Push current state to redo stack
+    setRedoStack(prev => [...prev, list]);
+    setUndoStack(newUndoStack);
+    
+    // Restore previous state (bypassing performUpdate to avoid pushing to undo stack again)
+    onUpdateList(previousState);
+  }, [undoStack, list, onUpdateList]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+
+    const nextState = redoStack[redoStack.length - 1];
+    const newRedoStack = redoStack.slice(0, -1);
+
+    // Push current state to undo stack
+    setUndoStack(prev => [...prev, list]);
+    setRedoStack(newRedoStack);
+
+    // Restore next state
+    onUpdateList(nextState);
+  }, [redoStack, list, onUpdateList]);
+
+  // --- Sorting ---
 
   const sortedItems = useMemo(() => {
     const itemsCopy = [...(list.items || [])];
@@ -151,7 +197,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       status: activeGroup.statuses[0]?.id || 'listed',
     };
 
-    onUpdateList({ ...list, items: [newItem, ...(list.items || [])] });
+    performUpdate({ ...list, items: [newItem, ...(list.items || [])] });
 
     // Only update history for authenticated users
     if (list.uid !== 'guest') {
@@ -168,7 +214,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
             console.error("Failed to update history:", err);
         }
     }
-  }, [activeGroup.statuses, list, onUpdateList, list.uid]);
+  }, [activeGroup.statuses, list, performUpdate, list.uid]);
 
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,14 +256,14 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       // "Freeze" the visual state for the transitional render
       transitionalItemsRef.current = newItemsInLockedOrder;
       setSortBy('custom');
-      onUpdateList({ ...list, items: newItemsInLockedOrder });
+      performUpdate({ ...list, items: newItemsInLockedOrder });
     } else {
       // For all other sort modes, just update the item's status in the canonical list.
       const canonicalItems = list.items || [];
       const newItems = canonicalItems.map(item => 
         item.id === id ? { ...item, status: getNextStatusId(item.status) } : item
       );
-      onUpdateList({ ...list, items: newItems });
+      performUpdate({ ...list, items: newItems });
     }
   };
   
@@ -239,7 +285,7 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     const newItems = canonicalItems.map(item =>
         item.id === id ? { ...item, quantity: newQuantity } : item
     );
-    onUpdateList({ ...list, items: newItems });
+    performUpdate({ ...list, items: newItems });
     setEditingQuantityItemId(null);
 };
 
@@ -259,7 +305,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
             name: trimmedName, 
         } : item
     );
-    onUpdateList({ ...list, items: newItems });
+    performUpdate({ ...list, items: newItems });
 };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, item: ShoppingListItem) => {
@@ -310,7 +356,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
 
     newItems.splice(finalDropIndex, 0, movedItem);
 
-    onUpdateList({ ...list, items: newItems });
+    performUpdate({ ...list, items: newItems });
   };
 
   const handleDragEnd = () => {
@@ -326,7 +372,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       return;
     }
     
-    onUpdateList({ ...list, name: trimmedName });
+    performUpdate({ ...list, name: trimmedName });
   };
 
   const confirmGroupChange = () => {
@@ -339,7 +385,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         status: firstStatusOfNewGroup || '',
     }));
 
-    onUpdateList({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
+    performUpdate({ ...list, statusGroupId: groupToChange.id, items: updatedItems });
     setGroupToChange(null);
   };
 
@@ -429,6 +475,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                             handleUpdateListName(e.target.value);
                         }}
                         aria-label="Edit list name"
+                        maxLength={50}
                     />
                 ) : (
                     <h1
@@ -444,7 +491,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         </div>
         
         <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <span className="text-pencil-light">{(list.items || []).length} {(list.items || []).length === 1 ? 'item' : 'items'}</span>
               <div className="relative" ref={groupMenuRef}>
                   <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-full px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
@@ -544,7 +591,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
         confirmText="Change"
       />
 
-      <div ref={suggestionsRef} className="relative mb-6">
+      <div ref={suggestionsRef} className="relative mb-2">
         <form onSubmit={handleAddItem} className="grid grid-cols-[70px_1fr_auto] gap-3 items-center">
           <input
               type="number"
@@ -552,6 +599,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
               onChange={(e) => setNewItemQty(e.target.value)}
               placeholder="Qty"
               min="1"
+              max="999"
               className="w-full bg-paper p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
               aria-label="Quantity"
           />
@@ -563,6 +611,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
             className="w-full bg-paper p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil"
             aria-label="New item name"
             autoComplete="off"
+            maxLength={100}
           />
           <button 
             type="submit" 
@@ -592,6 +641,27 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 </ul>
             </div>
         )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-2 px-1">
+          <button
+              onClick={handleUndo}
+              disabled={undoStack.length === 0}
+              className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
+              aria-label="Undo"
+              title="Undo"
+          >
+              <ArrowUturnLeftIcon className="w-5 h-5" />
+          </button>
+          <button
+              onClick={handleRedo}
+              disabled={redoStack.length === 0}
+              className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
+              aria-label="Redo"
+              title="Redo"
+          >
+              <ArrowUturnRightIcon className="w-5 h-5" />
+          </button>
       </div>
 
       <div 
@@ -636,6 +706,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                                     type="number"
                                     defaultValue={item.quantity}
                                     min="1"
+                                    max="999"
                                     autoFocus
                                     onFocus={(e) => e.target.select()}
                                     className="bg-highlighter text-pencil w-20 px-2 py-1 rounded-xl text-xl font-bold focus:outline-none focus:ring-2 focus:ring-ink appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none border-2 border-pencil"
@@ -682,6 +753,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                                 handleUpdateItemName(item.id, e.target.value);
                               }}
                               aria-label={`Edit name for ${item.name}`}
+                              maxLength={100}
                             />
                           ) : (
                             <span 
@@ -697,7 +769,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 <button
                   onClick={() => {
                     if (isPendingDelete) {
-                      onUpdateList({ ...list, items: (list.items || []).filter(i => i.id !== item.id) });
+                      performUpdate({ ...list, items: (list.items || []).filter(i => i.id !== item.id) });
                       setPendingDeleteId(null);
                     } else {
                       setPendingDeleteId(item.id);
