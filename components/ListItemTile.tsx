@@ -29,8 +29,11 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
     const degrees = (Math.random() * 4 - 2).toFixed(2); // Random float between -2.00 and 2.00
     return `rotate-[${degrees}deg]`;
   });
+  
+  // Use the list's custom color, fallback to the sticky-note default (yellow) if missing
+  const backgroundColor = list.color || '#fde69e';
 
-  const tileClasses = `relative bg-sticky-note cursor-grab transition-all duration-300 group transform md:hover:scale-105 shadow-sketchy`;
+  const tileClasses = `relative cursor-grab transition-all duration-300 group transform md:hover:scale-105 shadow-sketchy`;
   // When dragging, turn the tile into a dashed placeholder and reset transforms.
   const draggingClasses = `!bg-paper border-2 border-dashed !rotate-0 !scale-100 !shadow-none`;
   
@@ -46,6 +49,7 @@ const ListItemTile: React.FC<ListItemTileProps> = ({
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
       className={`${tileClasses} ${rotationClass} ${isDragging ? draggingClasses : ''}`}
+      style={!isDragging ? { backgroundColor } : undefined}
     >
       <div className={`p-5 flex flex-col justify-between h-full ${contentClasses}`}>
         <div>

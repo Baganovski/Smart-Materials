@@ -7,7 +7,7 @@ import LoginPage from './components/LoginPage';
 import VerifyEmailPage from './components/VerifyEmailPage';
 // Fix: Import 'firebase' directly to avoid using a global declaration and potential scope conflicts.
 import { auth, db, firebase } from './firebase';
-import { getDefaultStatusGroups } from './utils/defaults';
+import { getDefaultStatusGroups, NOTE_COLORS } from './utils/defaults';
 import ArrowPathIcon from './components/icons/ArrowPathIcon';
 import TrashIcon from './components/icons/TrashIcon';
 import XMarkIcon from './components/icons/XMarkIcon';
@@ -143,6 +143,7 @@ const App: React.FC = () => {
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     items: list.items || [],
                     statusGroupId: finalStatusGroupId,
+                    color: list.color || NOTE_COLORS[0], // Ensure color is migrated
                 };
                 batch.set(newDocRef, listData);
             });
@@ -341,6 +342,7 @@ const App: React.FC = () => {
             ...data,
             items: data.items || [], // Ensure items always exists
             statusGroupId: data.statusGroupId || 'default', // Ensure statusGroupId exists
+            color: data.color || NOTE_COLORS[0], // Ensure color exists
           } as ShoppingList;
         });
         setLists(listsData);
@@ -354,7 +356,7 @@ const App: React.FC = () => {
       try {
         const localListsStr = localStorage.getItem('guest_lists');
         const localLists = localListsStr ? JSON.parse(localListsStr) : [];
-        setLists(localLists);
+        setLists(localLists.map((l: ShoppingList) => ({ ...l, color: l.color || NOTE_COLORS[0] })));
 
         const localSettingsStr = localStorage.getItem('guest_settings');
         if (localSettingsStr) {
@@ -372,6 +374,7 @@ const App: React.FC = () => {
   }, [user, needsVerification]);
 
   const addList = async (name: string, statusGroupId: string) => {
+    const defaultColor = NOTE_COLORS[0];
     if (user && !needsVerification) {
       try {
         await db.collection('lists').add({
@@ -380,6 +383,7 @@ const App: React.FC = () => {
           items: [],
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           statusGroupId: statusGroupId,
+          color: defaultColor,
         });
       } catch (error) {
         console.error("Error adding document: ", error);
@@ -393,6 +397,7 @@ const App: React.FC = () => {
         items: [],
         createdAt: new Date().toISOString(),
         statusGroupId,
+        color: defaultColor,
       };
       const updatedLists = [newList, ...lists];
       setLists(updatedLists);

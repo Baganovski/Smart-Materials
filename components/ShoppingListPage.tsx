@@ -14,7 +14,9 @@ import ChevronDownIcon from './icons/ChevronDownIcon';
 import CheckIcon from './icons/CheckIcon';
 import ArrowUturnLeftIcon from './icons/ArrowUturnLeftIcon';
 import ArrowUturnRightIcon from './icons/ArrowUturnRightIcon';
+import PaletteIcon from './icons/PaletteIcon';
 import * as historyService from '../services/historyService';
+import { NOTE_COLORS } from '../utils/defaults';
 
 
 type SortOption = 'custom' | 'a-z' | 'z-a' | 'status';
@@ -39,10 +41,12 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
   const [sortBy, setSortBy] = useState<SortOption>('custom');
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [isGroupMenuOpen, setIsGroupMenuOpen] = useState(false);
+  const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
   const [groupToChange, setGroupToChange] = useState<StatusGroup | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const groupMenuRef = useRef<HTMLDivElement>(null);
+  const colorMenuRef = useRef<HTMLDivElement>(null);
   const transitionalItemsRef = useRef<ShoppingListItem[] | null>(null);
 
   // Undo/Redo Stacks
@@ -64,16 +68,20 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
     [activeGroup.statuses]
   );
   
-  // Change body background color to feel like we're on the sticky note
+  // Handle dynamic body background color based on the list's color
   useEffect(() => {
+    // Remove default classes
     document.body.classList.remove('bg-paper');
-    document.body.classList.add('bg-sticky-note');
+    
+    // Set custom color directly on the body to avoid flashing backgrounds
+    const listColor = list.color || NOTE_COLORS[0]; // Default to first color (Yellow) if undefined
+    document.body.style.backgroundColor = listColor;
 
     return () => {
-      document.body.classList.add('bg-paper');
-      document.body.classList.remove('bg-sticky-note');
+      document.body.style.backgroundColor = ''; // Reset inline style
+      document.body.classList.add('bg-paper'); // Restore default class
     };
-  }, []);
+  }, [list.color]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,6 +90,9 @@ const ShoppingListPage: React.FC<ShoppingListPageProps> = ({ list, userSettings,
       }
       if (groupMenuRef.current && !groupMenuRef.current.contains(event.target as Node)) {
         setIsGroupMenuOpen(false);
+      }
+      if (colorMenuRef.current && !colorMenuRef.current.contains(event.target as Node)) {
+        setIsColorMenuOpen(false);
       }
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
         setSuggestions([]);
@@ -400,6 +411,11 @@ const handleUpdateItemName = (id: string, newName: string) => {
       });
     }, 150);
   };
+  
+  const handleColorChange = (color: string) => {
+      performUpdate({ ...list, color });
+      setIsColorMenuOpen(false);
+  }
 
   const printableList = useMemo(() => {
     const title = `List: ${list.name}\n====================\n\n`;
@@ -451,9 +467,9 @@ const handleUpdateItemName = (id: string, newName: string) => {
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto">
       <header className="mb-6">
-        <div className="flex items-center mb-4">
-            <button onClick={onBack} className="mr-4 bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper" aria-label="Go back">
-                <ChevronLeftIcon className="w-8 h-8" />
+        <div className="flex items-center gap-3 mb-4">
+            <button onClick={onBack} className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper flex-shrink-0" aria-label="Go back">
+                <ChevronLeftIcon className="w-6 h-6 sm:w-8 sm:h-8" />
             </button>
             <div className="flex-grow min-w-0">
                 {isEditingTitle ? (
@@ -490,15 +506,14 @@ const handleUpdateItemName = (id: string, newName: string) => {
             </div>
         </div>
         
-        <div className="flex justify-between items-center">
+        <div className="flex flex-row flex-wrap sm:flex-nowrap justify-between items-center gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
-              <span className="text-pencil-light">{(list.items || []).length} {(list.items || []).length === 1 ? 'item' : 'items'}</span>
-              <div className="relative" ref={groupMenuRef}>
-                  <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-full px-3 py-1 max-w-48" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
+              <div className="relative flex-grow sm:flex-grow-0" ref={groupMenuRef}>
+                  <button onClick={() => setIsGroupMenuOpen(prev => !prev)} className="flex items-center gap-2 text-pencil md:hover:bg-highlighter/50 transition-colors border-2 border-pencil/20 rounded-full px-3 py-1 w-full sm:w-auto max-w-48 sm:max-w-none" aria-haspopup="true" aria-expanded={isGroupMenuOpen}>
                       <span className="truncate" title={activeGroup.name}>{activeGroup.name}</span>
-                      <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+                      <ChevronDownIcon className="w-4 h-4 flex-shrink-0 ml-auto sm:ml-0" />
                   </button>
-                  <div className={`absolute top-full mt-1 left-0 w-56 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                  <div className={`absolute top-full mt-1 left-0 w-full sm:w-56 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isGroupMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                       {userSettings.statusGroups.map(group => (
                           <button
                               key={group.id}
@@ -516,18 +531,66 @@ const handleUpdateItemName = (id: string, newName: string) => {
                       ))}
                   </div>
               </div>
+              
+               {/* Undo/Redo - Desktop Only */}
+               <div className="hidden sm:flex items-center gap-1 border-l-2 border-pencil/10 pl-3">
+                    <button
+                        onClick={handleUndo}
+                        disabled={undoStack.length === 0}
+                        className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
+                        aria-label="Undo"
+                        title="Undo"
+                    >
+                        <ArrowUturnLeftIcon className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={handleRedo}
+                        disabled={redoStack.length === 0}
+                        className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
+                        aria-label="Redo"
+                        title="Redo"
+                    >
+                        <ArrowUturnRightIcon className="w-5 h-5" />
+                    </button>
+               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div className="relative" ref={colorMenuRef}>
+                    <button
+                        onClick={() => setIsColorMenuOpen(prev => !prev)}
+                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                        aria-label="Change list color"
+                        aria-haspopup="true"
+                        aria-expanded={isColorMenuOpen}
+                    >
+                        <PaletteIcon className="w-5 h-5 sm:w-6 sm:h-6"/>
+                    </button>
+                    <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 p-3 ${isColorMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                        <p className="font-bold text-pencil-light text-sm mb-2">Note Color</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            {NOTE_COLORS.map(color => (
+                                <button
+                                    key={color}
+                                    onClick={() => handleColorChange(color)}
+                                    className={`w-10 h-10 rounded-full border-2 transition-transform transform md:hover:scale-110 ${list.color === color ? 'border-pencil ring-2 ring-ink' : 'border-pencil/20'}`}
+                                    style={{ backgroundColor: color }}
+                                    aria-label={`Select color ${color}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="relative" ref={sortMenuRef}>
                     <button
                         onClick={() => setIsSortMenuOpen(prev => !prev)}
-                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                        className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                         aria-label="Sort items"
                         aria-haspopup="true"
                         aria-expanded={isSortMenuOpen}
                     >
-                        <ArrowsUpDownIcon className="w-6 h-6"/>
+                        <ArrowsUpDownIcon className="w-5 h-5 sm:w-6 sm:h-6"/>
                     </button>
                     <div className={`absolute top-10 right-0 w-48 bg-paper border-2 border-pencil rounded-xl shadow-sketchy transition-opacity duration-200 z-10 overflow-hidden ${isSortMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                         <p className="font-bold text-pencil-light text-sm px-3 pt-2">Sort by</p>
@@ -552,10 +615,10 @@ const handleUpdateItemName = (id: string, newName: string) => {
                 </div>
                 <button
                     onClick={() => setIsPrintModalOpen(true)}
-                    className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-12 h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
+                    className="bg-transparent md:hover:bg-highlighter border-2 border-pencil rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all transform md:hover:scale-110 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper"
                     aria-label="Export list"
                 >
-                    <ArrowUpOnSquareIcon className="w-7 h-7" />
+                    <ArrowUpOnSquareIcon className="w-6 h-6 sm:w-7 sm:h-7" />
                 </button>
             </div>
         </div>
@@ -567,7 +630,8 @@ const handleUpdateItemName = (id: string, newName: string) => {
             <h2 className="text-2xl font-bold mb-4 flex-shrink-0">Export List</h2>
             <textarea
               readOnly
-              className="w-full flex-grow bg-sticky-note text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-none"
+              className="w-full flex-grow text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-none"
+              style={{ backgroundColor: list.color || NOTE_COLORS[0] }}
               value={printableList}
               aria-label="Printable item list"
             />
@@ -592,7 +656,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
       />
 
       <div ref={suggestionsRef} className="relative mb-2">
-        <form onSubmit={handleAddItem} className="grid grid-cols-[70px_1fr_auto] gap-3 items-center">
+        <form onSubmit={handleAddItem} className="grid grid-cols-[70px_1fr_auto] gap-3 items-center mb-2">
           <input
               type="number"
               value={newItemQty}
@@ -662,6 +726,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
           >
               <ArrowUturnRightIcon className="w-5 h-5" />
           </button>
+          <span className="text-pencil-light ml-2 text-sm sm:text-base">{(list.items || []).length} {(list.items || []).length === 1 ? 'item' : 'items'}</span>
       </div>
 
       <div 

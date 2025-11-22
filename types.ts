@@ -1,3 +1,4 @@
+
 // Fix: Define the firebase namespace and nested Timestamp type for TypeScript.
 // This allows using firebase.firestore.Timestamp as a type.
 declare global {
@@ -31,6 +32,7 @@ export interface ShoppingList {
   items: ShoppingListItem[];
   createdAt: firebase.firestore.Timestamp | string;
   statusGroupId: string; // Link to a specific status group
+  color?: string; // Custom background color for the note
 }
 
 export interface Country {

@@ -1,3 +1,4 @@
+
 import { StatusGroup } from "../types";
 
 export const getDefaultStatusGroups = (): StatusGroup[] => [
@@ -34,6 +35,15 @@ export const PRESET_COLORS: string[] = [
     '#8b5cf6', // violet-500
     '#d946ef', // fuchsia-500
     '#ec4899', // pink-500
+];
+
+export const NOTE_COLORS: string[] = [
+    '#fde69e', // Classic Yellow (Default)
+    '#fbcfe8', // Pink
+    '#bfdbfe', // Blue
+    '#bbf7d0', // Green
+    '#ddd6fe', // Purple
+    '#fed7aa', // Orange
 ];
 
 export const ALL_ICONS: string[] = [
