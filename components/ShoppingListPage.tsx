@@ -520,7 +520,7 @@ const handleUpdateItemName = (id: string, newName: string) => {
             <h2 className="text-2xl font-bold mb-4 flex-shrink-0">Export List</h2>
             <textarea
               readOnly
-              className="w-full flex-grow bg-highlighter text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-none"
+              className="w-full flex-grow bg-sticky-note text-pencil placeholder-pencil-light p-3 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-ink border-2 border-pencil resize-none"
               value={printableList}
               aria-label="Printable item list"
             />

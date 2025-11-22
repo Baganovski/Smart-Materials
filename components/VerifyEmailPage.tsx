@@ -56,7 +56,7 @@ const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ user, onCheckVerifica
             </p>
 
             <div className="relative w-full max-w-sm bg-sticky-note transform -rotate-2 shadow-sketchy">
-                <div className="absolute top-0 left-0 right-0 h-10 bg-sticky-note-top" />
+                <div className="absolute top-0 left-0 right-0 h-10" />
 
                 <div className="relative pt-12 px-8 pb-8">
                      <div className="text-center">
