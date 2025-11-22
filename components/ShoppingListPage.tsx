@@ -531,28 +531,6 @@ const handleUpdateItemName = (id: string, newName: string) => {
                       ))}
                   </div>
               </div>
-              
-               {/* Undo/Redo - Desktop Only */}
-               <div className="hidden sm:flex items-center gap-1 border-l-2 border-pencil/10 pl-3">
-                    <button
-                        onClick={handleUndo}
-                        disabled={undoStack.length === 0}
-                        className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
-                        aria-label="Undo"
-                        title="Undo"
-                    >
-                        <ArrowUturnLeftIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={handleRedo}
-                        disabled={redoStack.length === 0}
-                        className="p-1 text-pencil-light hover:text-ink disabled:opacity-30 transition-colors"
-                        aria-label="Redo"
-                        title="Redo"
-                    >
-                        <ArrowUturnRightIcon className="w-5 h-5" />
-                    </button>
-               </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
